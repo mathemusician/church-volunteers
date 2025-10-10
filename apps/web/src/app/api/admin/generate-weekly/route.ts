@@ -64,7 +64,12 @@ export async function POST(request: NextRequest) {
 
     // Create event instance for each weekly occurrence
     for (const date of weeklyDates) {
-      const dateStr = date.toISOString().split('T')[0];
+      // Format date in local timezone (YYYY-MM-DD)
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+
       const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
       const instanceSlug = `${template.slug}-${dateStr}`;
