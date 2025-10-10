@@ -140,6 +140,23 @@ export function useLists(eventId: number | null) {
     }
   };
 
+  const lockAll = async (locked: boolean) => {
+    if (!eventId) return { success: false, error: 'No event selected' };
+
+    const response = await fetch('/api/admin/lists/lock-all', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId, locked }),
+    });
+
+    if (response.ok) {
+      await fetchLists();
+      return { success: true };
+    } else {
+      return { success: false, error: 'Failed to lock/unlock all lists' };
+    }
+  };
+
   return {
     lists,
     loading,
@@ -150,5 +167,6 @@ export function useLists(eventId: number | null) {
     toggleLock,
     clearList,
     reorderLists,
+    lockAll,
   };
 }

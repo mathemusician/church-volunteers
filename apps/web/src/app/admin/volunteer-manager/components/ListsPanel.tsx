@@ -8,6 +8,7 @@ interface ListsPanelProps {
   onDeleteList: (listId: number) => void;
   onToggleLock: (list: List) => void;
   onReorder: (listIds: number[]) => void;
+  onLockAll: (locked: boolean) => void;
 }
 
 export function ListsPanel({
@@ -17,6 +18,7 @@ export function ListsPanel({
   onDeleteList,
   onToggleLock,
   onReorder,
+  onLockAll,
 }: ListsPanelProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -56,9 +58,25 @@ export function ListsPanel({
     setDragOverIndex(null);
   };
 
+  const allLocked = lists.length > 0 && lists.every((list) => list.is_locked);
+
   return (
     <>
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex gap-2">
+          {lists.length > 0 && (
+            <button
+              onClick={() => onLockAll(!allLocked)}
+              className={`rounded-md px-3 py-2 text-sm font-semibold ${
+                allLocked
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+              }`}
+            >
+              {allLocked ? '🔓 Unlock All' : '🔒 Lock All'}
+            </button>
+          )}
+        </div>
         <button
           onClick={onAddList}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
