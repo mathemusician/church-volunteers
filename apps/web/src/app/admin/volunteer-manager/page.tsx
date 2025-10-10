@@ -22,6 +22,7 @@ export default function VolunteerManagerPage() {
     deleteEvent,
     duplicateEvent,
     generateWeekly,
+    reorderEvents,
   } = useEvents();
 
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -209,6 +210,7 @@ export default function VolunteerManagerPage() {
               onSelectEvent={setSelectedEvent}
               onNewEvent={openNewEvent}
               onGenerateSundays={handleGenerateSundays}
+              onReorder={reorderEvents}
             />
           </div>
 

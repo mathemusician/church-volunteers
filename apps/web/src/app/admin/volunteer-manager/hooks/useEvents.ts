@@ -116,6 +116,21 @@ export function useEvents() {
     }
   };
 
+  const reorderEvents = async (eventIds: number[]) => {
+    const response = await fetch('/api/admin/events/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventIds }),
+    });
+
+    if (response.ok) {
+      await fetchEvents();
+      return { success: true };
+    } else {
+      return { success: false, error: 'Failed to reorder events' };
+    }
+  };
+
   return {
     events,
     loading,
@@ -125,5 +140,6 @@ export function useEvents() {
     deleteEvent,
     duplicateEvent,
     generateWeekly,
+    reorderEvents,
   };
 }

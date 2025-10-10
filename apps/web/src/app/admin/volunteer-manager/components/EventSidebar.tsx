@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { Event } from '../hooks/useEvents';
 
 interface EventSidebarProps {
@@ -7,6 +7,7 @@ interface EventSidebarProps {
   onSelectEvent: (event: Event) => void;
   onNewEvent: () => void;
   onGenerateSundays?: (template: Event) => void;
+  onReorder: (eventIds: number[]) => void;
 }
 
 export function EventSidebar({
@@ -15,8 +16,11 @@ export function EventSidebar({
   onSelectEvent,
   onNewEvent,
   onGenerateSundays,
+  onReorder,
 }: EventSidebarProps) {
   const [expandedTemplates, setExpandedTemplates] = useState<Set<number>>(new Set());
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const dragOverIndexRef = useRef<number | null>(null);
 
   const toggleTemplate = (templateId: number) => {
     setExpandedTemplates((prev) => {
@@ -68,6 +72,48 @@ export function EventSidebar({
 
     // Default fallback
     return 'events';
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+    dragOverIndexRef.current = index;
+  };
+
+  const handleDragEnter = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && index !== dragOverIndexRef.current) {
+      dragOverIndexRef.current = index;
+      setDraggedIndex(draggedIndex);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number, standaloneEvents: Event[]) => {
+    e.preventDefault();
+
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      dragOverIndexRef.current = null;
+      return;
+    }
+
+    const newEvents = [...standaloneEvents];
+    const [draggedItem] = newEvents.splice(draggedIndex, 1);
+    newEvents.splice(dropIndex, 0, draggedItem);
+
+    const eventIds = newEvents.map((event) => event.id);
+    onReorder(eventIds);
+
+    setDraggedIndex(null);
+    dragOverIndexRef.current = null;
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    dragOverIndexRef.current = null;
   };
 
   const getGroupedEvents = () => {
@@ -204,15 +250,34 @@ export function EventSidebar({
         })}
 
         {/* Standalone events (no template) */}
-        {standalone.map((event) => (
-          <div key={event.id} className="flex items-center gap-1">
+        {standalone.map((event, index) => (
+          <div
+            key={event.id}
+            className="flex items-center gap-1"
+            draggable
+            onDragStart={() => handleDragStart(index)}
+            onDragEnter={(e) => handleDragEnter(e, index)}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, index, standalone)}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="text-gray-400 hover:text-gray-600 cursor-move px-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 8h16M4 16h16"
+                />
+              </svg>
+            </div>
             <button
               onClick={() => onSelectEvent(event)}
-              className={`flex-1 text-left px-3 py-2 rounded-md text-sm ${
+              className={`flex-1 text-left px-3 py-2 rounded-md text-sm transition-opacity ${
                 selectedEvent?.id === event.id
                   ? 'bg-blue-100 text-blue-700 font-medium'
                   : 'hover:bg-gray-100 text-gray-900'
-              }`}
+              } ${draggedIndex === index ? 'opacity-50' : ''}`}
             >
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center gap-1">

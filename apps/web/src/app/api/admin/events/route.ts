@@ -20,7 +20,7 @@ export async function GET(_request: NextRequest) {
       `SELECT * FROM volunteer_events 
        WHERE organization_id = $1 
        AND (is_template = true OR event_date >= CURRENT_DATE)
-       ORDER BY event_date ASC NULLS FIRST, created_at DESC`,
+       ORDER BY sort_order ASC NULLS LAST, event_date ASC NULLS FIRST, created_at DESC`,
       [orgContext.organizationId]
     );
 
