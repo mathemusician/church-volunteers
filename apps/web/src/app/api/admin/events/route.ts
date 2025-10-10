@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     const {
-      slug,
+      slug: originalSlug,
       title,
       description,
       event_date,
@@ -56,8 +56,29 @@ export async function POST(request: NextRequest) {
       auto_extend = false,
     } = await request.json();
 
-    if (!slug || !title) {
+    if (!originalSlug || !title) {
       return NextResponse.json({ error: 'Slug and title are required' }, { status: 400 });
+    }
+
+    // Find available slug (handle duplicates by appending numbers)
+    let slug = originalSlug;
+    let suffix = 0;
+    const MAX_ATTEMPTS = 100;
+
+    while (suffix < MAX_ATTEMPTS) {
+      const existingEvent = await query(
+        'SELECT id FROM volunteer_events WHERE organization_id = $1 AND slug = $2',
+        [orgContext.organizationId, slug]
+      );
+
+      if (existingEvent.rows.length === 0) {
+        // Slug is available
+        break;
+      }
+
+      // Try next suffix
+      suffix++;
+      slug = `${originalSlug}${suffix}`;
     }
 
     const result = await query(
@@ -79,13 +100,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result.rows[0], { status: 201 });
   } catch (error: any) {
     console.error('Error creating event:', error);
-    if (error.code === '23505') {
-      // Unique violation
-      return NextResponse.json(
-        { error: 'An event with this slug already exists' },
-        { status: 409 }
-      );
-    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

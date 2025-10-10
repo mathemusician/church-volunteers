@@ -34,10 +34,29 @@ export async function POST(request: NextRequest) {
 
     const originalEvent = eventResult.rows[0];
 
-    // Create a unique slug by appending timestamp
-    const timestamp = Date.now();
-    const newSlug = `${originalEvent.slug}-copy-${timestamp}`;
-    const newTitle = `${originalEvent.title} (Copy)`;
+    // Find available slug (handle duplicates by appending numbers)
+    let slug = originalEvent.slug;
+    let suffix = 0;
+    const MAX_ATTEMPTS = 100;
+
+    while (suffix < MAX_ATTEMPTS) {
+      const existingEvent = await query(
+        'SELECT id FROM volunteer_events WHERE organization_id = $1 AND slug = $2',
+        [orgContext.organizationId, slug]
+      );
+
+      if (existingEvent.rows.length === 0) {
+        // Slug is available
+        break;
+      }
+
+      // Try next suffix
+      suffix++;
+      slug = `${originalEvent.slug}${suffix}`;
+    }
+
+    const newSlug = slug;
+    const newTitle = originalEvent.title;
 
     // Duplicate the event (without template_id to avoid linking it to the template)
     const newEventResult = await query(
