@@ -188,7 +188,7 @@ export default function MembersPage() {
                       onChange={(e) =>
                         handleChangeRole(member.user_email, e.target.value as 'admin' | 'member')
                       }
-                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                      className="text-sm text-gray-900 border border-gray-300 rounded px-2 py-1 font-medium"
                     >
                       <option value="admin">Admin</option>
                       <option value="member">Member</option>

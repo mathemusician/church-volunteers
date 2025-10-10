@@ -29,7 +29,7 @@ export function ListsPanel({
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
+    if (draggedIndex === null) return;
     setDragOverIndex(index);
   };
 
