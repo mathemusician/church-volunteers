@@ -3,9 +3,12 @@ import { getInviteByToken, acceptInvite, declineInvite } from '@/lib/invites';
 import { auth } from '@/auth';
 
 // GET - Get invite details (no auth required - anyone with the link can view)
-export async function GET(request: NextRequest, { params }: { params: { token: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ token: string }> }
+) {
   try {
-    const { token } = params;
+    const { token } = await params;
 
     const invite = await getInviteByToken(token);
 
@@ -29,14 +32,17 @@ export async function GET(request: NextRequest, { params }: { params: { token: s
 }
 
 // POST - Accept or decline invite
-export async function POST(request: NextRequest, { params }: { params: { token: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ token: string }> }
+) {
   try {
     const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Must be signed in' }, { status: 401 });
     }
 
-    const { token } = params;
+    const { token } = await params;
     const { action } = await request.json();
 
     if (!['accept', 'decline'].includes(action)) {

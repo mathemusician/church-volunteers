@@ -4,10 +4,10 @@ import { getOrganizationByPublicId } from '@/lib/models/organization';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orgId: string; slug: string } }
+  { params }: { params: Promise<{ orgId: string; slug: string }> }
 ) {
   try {
-    const { orgId, slug } = params;
+    const { orgId, slug } = await params;
 
     // 1. Lookup organization by public_id
     const org = await getOrganizationByPublicId(orgId);

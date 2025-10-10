@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
 // GET volunteer event and its lists by slug
-export async function GET(_request: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
   try {
-    const { slug } = params;
+    const { slug } = await params;
 
     // Get event
     const eventResult = await query(
