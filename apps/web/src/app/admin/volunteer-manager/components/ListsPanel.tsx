@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { List } from '../hooks/useLists';
 
 interface ListsPanelProps {
@@ -21,16 +21,24 @@ export function ListsPanel({
   onLockAll,
 }: ListsPanelProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragOverIndexRef = useRef<number | null>(null);
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
+    dragOverIndexRef.current = index;
   };
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+  const handleDragEnter = (e: React.DragEvent, index: number) => {
     e.preventDefault();
-    if (draggedIndex === null) return;
-    setDragOverIndex(index);
+    if (draggedIndex !== null && index !== dragOverIndexRef.current) {
+      dragOverIndexRef.current = index;
+      // Force a single re-render with the new position
+      setDraggedIndex(draggedIndex);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
   };
 
   const handleDrop = (e: React.DragEvent, dropIndex: number) => {
@@ -38,7 +46,7 @@ export function ListsPanel({
 
     if (draggedIndex === null || draggedIndex === dropIndex) {
       setDraggedIndex(null);
-      setDragOverIndex(null);
+      dragOverIndexRef.current = null;
       return;
     }
 
@@ -51,27 +59,24 @@ export function ListsPanel({
     onReorder(listIds);
 
     setDraggedIndex(null);
-    setDragOverIndex(null);
+    dragOverIndexRef.current = null;
   };
 
   const handleDragEnd = () => {
     setDraggedIndex(null);
-    setDragOverIndex(null);
+    dragOverIndexRef.current = null;
   };
 
-  // Calculate display order with live preview during drag
-  const getDisplayLists = () => {
-    if (draggedIndex === null || dragOverIndex === null) {
-      return lists;
-    }
-
-    const newLists = [...lists];
-    const [draggedItem] = newLists.splice(draggedIndex, 1);
-    newLists.splice(dragOverIndex, 0, draggedItem);
-    return newLists;
-  };
-
-  const displayLists = getDisplayLists();
+  // Calculate display order with live preview
+  const displayLists =
+    draggedIndex !== null && dragOverIndexRef.current !== null
+      ? (() => {
+          const newLists = [...lists];
+          const [draggedItem] = newLists.splice(draggedIndex, 1);
+          newLists.splice(dragOverIndexRef.current, 0, draggedItem);
+          return newLists;
+        })()
+      : lists;
 
   const allLocked = lists.length > 0 && lists.every((list) => list.is_locked);
 
@@ -108,7 +113,8 @@ export function ListsPanel({
               key={list.id}
               draggable
               onDragStart={() => handleDragStart(originalIndex)}
-              onDragOver={(e) => handleDragOver(e, originalIndex)}
+              onDragEnter={(e) => handleDragEnter(e, originalIndex)}
+              onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, originalIndex)}
               onDragEnd={handleDragEnd}
               className={`border border-gray-200 rounded-lg p-4 hover:border-gray-300 cursor-move transition-all ${
