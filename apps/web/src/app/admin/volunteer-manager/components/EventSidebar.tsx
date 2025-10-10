@@ -21,6 +21,7 @@ export function EventSidebar({
   const [expandedTemplates, setExpandedTemplates] = useState<Set<number>>(new Set());
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const dragOverIndexRef = useRef<number | null>(null);
+  const [showPastEvents, setShowPastEvents] = useState(false);
 
   const toggleTemplate = (templateId: number) => {
     setExpandedTemplates((prev) => {
@@ -117,11 +118,24 @@ export function EventSidebar({
   };
 
   const getGroupedEvents = () => {
+    // Filter out past events if showPastEvents is false
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const filteredEvents = showPastEvents
+      ? events
+      : events.filter((event) => {
+          if (event.is_template) return true; // Always show templates
+          if (!event.event_date) return true; // Show events without dates
+          const eventDate = new Date(event.event_date);
+          return eventDate >= today;
+        });
+
     const templates: Event[] = [];
     const standalone: Event[] = [];
     const byTemplate: Record<number, Event[]> = {};
 
-    events.forEach((event) => {
+    filteredEvents.forEach((event) => {
       if (event.is_template) {
         templates.push(event);
         // Only initialize if it doesn't exist (instances might have been added already)
@@ -153,13 +167,21 @@ export function EventSidebar({
 
   return (
     <div className="rounded-lg bg-white p-4 shadow">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold text-gray-900">Events</h2>
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="font-semibold text-gray-900">Events</h2>
+          <button
+            onClick={onNewEvent}
+            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500"
+          >
+            + New Event
+          </button>
+        </div>
         <button
-          onClick={onNewEvent}
-          className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500"
+          onClick={() => setShowPastEvents(!showPastEvents)}
+          className="text-xs text-gray-600 hover:text-gray-900 underline"
         >
-          + New Event
+          {showPastEvents ? 'Hide Past' : 'Show Past'}
         </button>
       </div>
       <div className="space-y-1">
