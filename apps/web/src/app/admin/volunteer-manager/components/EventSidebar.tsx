@@ -145,7 +145,6 @@ export function EventSidebar({
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-1">
                       <span>📋</span>
-                      {template.auto_extend && <span title="Auto-extends weekly">🔄</span>}
                       <span className="font-medium">{template.title}</span>
                       {instances.length > 0 && (
                         <span className="text-xs text-gray-500">({instances.length})</span>
@@ -172,7 +171,6 @@ export function EventSidebar({
                       >
                         <div className="flex flex-col gap-0.5">
                           <div className="flex items-center gap-1">
-                            {instance.auto_extend && <span title="Auto-extends weekly">🔄</span>}
                             <span className="font-medium">{instance.title}</span>
                           </div>
                           {formatEventDate(instance) && (
@@ -218,7 +216,6 @@ export function EventSidebar({
             >
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center gap-1">
-                  {event.auto_extend && <span title="Auto-extends weekly">🔄</span>}
                   <span className="font-medium">{event.title}</span>
                 </div>
                 {formatEventDate(event) && (

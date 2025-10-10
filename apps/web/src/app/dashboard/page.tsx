@@ -94,6 +94,14 @@ export default async function DashboardPage() {
             <p className="text-sm text-gray-600">Invite and manage organization members</p>
           </Link>
 
+          <Link
+            href="/admin/settings"
+            className="block rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow"
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">⚙️ Settings</h3>
+            <p className="text-sm text-gray-600">Update organization name and details</p>
+          </Link>
+
           {/* User Info Card */}
           <div className="rounded-lg bg-white p-6 shadow md:col-span-2">
             <h3 className="text-lg font-semibold text-gray-700 mb-4">User Information</h3>

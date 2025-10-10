@@ -127,7 +127,7 @@ export default function MembersPage() {
           <div className="flex h-16 justify-between items-center">
             <div className="flex items-center gap-4">
               <h1 className="text-xl font-bold text-gray-900">Team Members</h1>
-              <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
+              <Link href="/dashboard" className="text-sm text-gray-800 hover:text-gray-900">
                 ← Back to Dashboard
               </Link>
             </div>
@@ -174,9 +174,9 @@ export default function MembersPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600">{member.user_email}</p>
+                  <p className="text-sm text-gray-800">{member.user_email}</p>
                   {member.joined_at && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-700">
                       Joined {new Date(member.joined_at).toLocaleDateString()}
                     </p>
                   )}
@@ -230,8 +230,8 @@ export default function MembersPage() {
                         {invite.role}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600">{invite.user_email}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm text-gray-800">{invite.user_email}</p>
+                    <p className="text-xs text-gray-700">
                       Invited by {invite.invited_by} on{' '}
                       {new Date(invite.invited_at).toLocaleDateString()}
                     </p>
@@ -257,13 +257,13 @@ export default function MembersPage() {
 
             {inviteUrl ? (
               <div className="space-y-4">
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-900">
                   <strong>Invitation Created!</strong> Share this sign-in link with the new member:
                 </p>
                 <div className="p-3 bg-blue-50 rounded border border-blue-200 break-all text-sm text-gray-900">
                   {inviteUrl}
                 </div>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray-800">
                   ✉️ They can click this link to sign in. If they don't have an account, they'll be
                   able to create one using their email. The invitation expires in 7 days.
                 </p>

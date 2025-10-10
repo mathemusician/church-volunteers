@@ -18,7 +18,6 @@ export function EventFormModal({ isOpen, editingEvent, onClose, onSubmit }: Even
     end_date: '',
     is_active: true,
     is_template: false,
-    auto_extend: false,
   });
 
   useEffect(() => {
@@ -32,7 +31,6 @@ export function EventFormModal({ isOpen, editingEvent, onClose, onSubmit }: Even
         end_date: editingEvent.end_date || '',
         is_active: editingEvent.is_active,
         is_template: editingEvent.is_template,
-        auto_extend: editingEvent.auto_extend || false,
       });
     } else {
       setForm({
@@ -44,7 +42,6 @@ export function EventFormModal({ isOpen, editingEvent, onClose, onSubmit }: Even
         end_date: '',
         is_active: true,
         is_template: false,
-        auto_extend: false,
       });
     }
   }, [editingEvent]);
@@ -137,18 +134,6 @@ export function EventFormModal({ isOpen, editingEvent, onClose, onSubmit }: Even
                   onChange={(e) => setForm({ ...form, event_date: e.target.value })}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                 />
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="auto_extend"
-                  checked={form.auto_extend}
-                  onChange={(e) => setForm({ ...form, auto_extend: e.target.checked })}
-                  className="mr-2"
-                />
-                <label htmlFor="auto_extend" className="text-sm text-gray-700">
-                  Auto-extend weekly (automatically create next week's event 7 days later)
-                </label>
               </div>
             </>
           )}

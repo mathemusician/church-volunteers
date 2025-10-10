@@ -11,7 +11,6 @@ export interface Event {
   end_date: string | null;
   is_template: boolean;
   template_id: number | null;
-  auto_extend: boolean;
 }
 
 export function useEvents() {
