@@ -19,8 +19,10 @@ export function EventSidebar({
   onReorder,
 }: EventSidebarProps) {
   const [expandedTemplates, setExpandedTemplates] = useState<Set<number>>(new Set());
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const dragOverIndexRef = useRef<number | null>(null);
+  const [draggedStandaloneIndex, setDraggedStandaloneIndex] = useState<number | null>(null);
+  const dragOverStandaloneIndexRef = useRef<number | null>(null);
+  const [draggedTemplateIndex, setDraggedTemplateIndex] = useState<number | null>(null);
+  const dragOverTemplateIndexRef = useRef<number | null>(null);
   const [showPastEvents, setShowPastEvents] = useState(false);
 
   const toggleTemplate = (templateId: number) => {
@@ -75,46 +77,94 @@ export function EventSidebar({
     return 'events';
   };
 
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-    dragOverIndexRef.current = index;
+  // Standalone event drag handlers
+  const handleStandaloneDragStart = (index: number) => {
+    setDraggedStandaloneIndex(index);
+    dragOverStandaloneIndexRef.current = index;
   };
 
-  const handleDragEnter = (e: React.DragEvent, index: number) => {
+  const handleStandaloneDragEnter = (e: React.DragEvent, index: number) => {
     e.preventDefault();
-    if (draggedIndex !== null && index !== dragOverIndexRef.current) {
-      dragOverIndexRef.current = index;
-      setDraggedIndex(draggedIndex);
+    if (draggedStandaloneIndex !== null && index !== dragOverStandaloneIndexRef.current) {
+      dragOverStandaloneIndexRef.current = index;
+      setDraggedStandaloneIndex(draggedStandaloneIndex);
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleStandaloneDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent, dropIndex: number, standaloneEvents: Event[]) => {
+  const handleStandaloneDrop = (
+    e: React.DragEvent,
+    dropIndex: number,
+    standaloneEvents: Event[]
+  ) => {
     e.preventDefault();
 
-    if (draggedIndex === null || draggedIndex === dropIndex) {
-      setDraggedIndex(null);
-      dragOverIndexRef.current = null;
+    if (draggedStandaloneIndex === null || draggedStandaloneIndex === dropIndex) {
+      setDraggedStandaloneIndex(null);
+      dragOverStandaloneIndexRef.current = null;
       return;
     }
 
     const newEvents = [...standaloneEvents];
-    const [draggedItem] = newEvents.splice(draggedIndex, 1);
+    const [draggedItem] = newEvents.splice(draggedStandaloneIndex, 1);
     newEvents.splice(dropIndex, 0, draggedItem);
 
     const eventIds = newEvents.map((event) => event.id);
     onReorder(eventIds);
 
-    setDraggedIndex(null);
-    dragOverIndexRef.current = null;
+    setDraggedStandaloneIndex(null);
+    dragOverStandaloneIndexRef.current = null;
   };
 
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-    dragOverIndexRef.current = null;
+  const handleStandaloneDragEnd = () => {
+    setDraggedStandaloneIndex(null);
+    dragOverStandaloneIndexRef.current = null;
+  };
+
+  // Template drag handlers
+  const handleTemplateDragStart = (index: number) => {
+    setDraggedTemplateIndex(index);
+    dragOverTemplateIndexRef.current = index;
+  };
+
+  const handleTemplateDragEnter = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedTemplateIndex !== null && index !== dragOverTemplateIndexRef.current) {
+      dragOverTemplateIndexRef.current = index;
+      setDraggedTemplateIndex(draggedTemplateIndex);
+    }
+  };
+
+  const handleTemplateDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleTemplateDrop = (e: React.DragEvent, dropIndex: number, templateList: Event[]) => {
+    e.preventDefault();
+
+    if (draggedTemplateIndex === null || draggedTemplateIndex === dropIndex) {
+      setDraggedTemplateIndex(null);
+      dragOverTemplateIndexRef.current = null;
+      return;
+    }
+
+    const newTemplates = [...templateList];
+    const [draggedItem] = newTemplates.splice(draggedTemplateIndex, 1);
+    newTemplates.splice(dropIndex, 0, draggedItem);
+
+    const eventIds = newTemplates.map((event) => event.id);
+    onReorder(eventIds);
+
+    setDraggedTemplateIndex(null);
+    dragOverTemplateIndexRef.current = null;
+  };
+
+  const handleTemplateDragEnd = () => {
+    setDraggedTemplateIndex(null);
+    dragOverTemplateIndexRef.current = null;
   };
 
   const getGroupedEvents = () => {
@@ -186,14 +236,32 @@ export function EventSidebar({
       </div>
       <div className="space-y-1">
         {/* Templates with nested instances */}
-        {templates.map((template) => {
+        {templates.map((template, index) => {
           const instances = byTemplate[template.id] || [];
           const isExpanded = expandedTemplates.has(template.id);
 
           return (
             <div key={template.id}>
               {/* Template */}
-              <div className="flex items-center gap-1">
+              <div
+                className="flex items-center gap-1"
+                draggable
+                onDragStart={() => handleTemplateDragStart(index)}
+                onDragEnter={(e) => handleTemplateDragEnter(e, index)}
+                onDragOver={handleTemplateDragOver}
+                onDrop={(e) => handleTemplateDrop(e, index, templates)}
+                onDragEnd={handleTemplateDragEnd}
+              >
+                <div className="text-gray-400 hover:text-gray-600 cursor-move px-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 8h16M4 16h16"
+                    />
+                  </svg>
+                </div>
                 {instances.length > 0 && (
                   <button
                     onClick={() => toggleTemplate(template.id)}
@@ -204,11 +272,11 @@ export function EventSidebar({
                 )}
                 <button
                   onClick={() => onSelectEvent(template)}
-                  className={`flex-1 text-left px-3 py-2 rounded-md text-sm ${
+                  className={`flex-1 text-left px-3 py-2 rounded-md text-sm transition-opacity ${
                     selectedEvent?.id === template.id
                       ? 'bg-blue-100 text-blue-700 font-medium'
                       : 'hover:bg-gray-100 text-gray-900'
-                  }`}
+                  } ${draggedTemplateIndex === index ? 'opacity-50' : ''}`}
                 >
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-1">
@@ -277,11 +345,11 @@ export function EventSidebar({
             key={event.id}
             className="flex items-center gap-1"
             draggable
-            onDragStart={() => handleDragStart(index)}
-            onDragEnter={(e) => handleDragEnter(e, index)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, index, standalone)}
-            onDragEnd={handleDragEnd}
+            onDragStart={() => handleStandaloneDragStart(index)}
+            onDragEnter={(e) => handleStandaloneDragEnter(e, index)}
+            onDragOver={handleStandaloneDragOver}
+            onDrop={(e) => handleStandaloneDrop(e, index, standalone)}
+            onDragEnd={handleStandaloneDragEnd}
           >
             <div className="text-gray-400 hover:text-gray-600 cursor-move px-1">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,7 +367,7 @@ export function EventSidebar({
                 selectedEvent?.id === event.id
                   ? 'bg-blue-100 text-blue-700 font-medium'
                   : 'hover:bg-gray-100 text-gray-900'
-              } ${draggedIndex === index ? 'opacity-50' : ''}`}
+              } ${draggedStandaloneIndex === index ? 'opacity-50' : ''}`}
             >
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center gap-1">
