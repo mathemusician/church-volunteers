@@ -46,15 +46,27 @@ export async function POST(request: NextRequest) {
 
     const templateLists = listsResult.rows;
 
-    // Calculate next N weeks starting from begin_date (or today if no begin_date)
-    // Uses the same day of the week as the start date
-    const weeklyDates: Date[] = [];
-    const startDate = template.begin_date ? new Date(template.begin_date) : new Date();
+    // Find the latest existing event for this template
+    const latestEventResult = await query(
+      'SELECT event_date FROM volunteer_events WHERE template_id = $1 AND event_date IS NOT NULL ORDER BY event_date DESC LIMIT 1',
+      [templateId]
+    );
 
-    // Start from the begin_date and generate N weekly occurrences
+    // Start from the latest event date + 1 week, or from begin_date if no events exist
+    let startDate: Date;
+    if (latestEventResult.rows.length > 0) {
+      // Start from the next week after the latest event
+      startDate = new Date(latestEventResult.rows[0].event_date);
+      startDate.setDate(startDate.getDate() + 7);
+    } else {
+      // No events yet, start from begin_date or today
+      startDate = template.begin_date ? new Date(template.begin_date) : new Date();
+    }
+
+    // Generate N weekly occurrences starting from startDate
+    const weeklyDates: Date[] = [];
     const currentDate = new Date(startDate);
 
-    // Generate exactly N weeks
     for (let i = 0; i < weeks; i++) {
       weeklyDates.push(new Date(currentDate));
       currentDate.setDate(currentDate.getDate() + 7);
