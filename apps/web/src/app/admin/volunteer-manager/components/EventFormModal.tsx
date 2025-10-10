@@ -69,11 +69,13 @@ export function EventFormModal({ isOpen, editingEvent, onClose, onSubmit }: Even
 
   if (!isOpen) return null;
 
+  const isEditingTemplate = editingEvent?.is_template;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4">
-          {editingEvent ? 'Edit Event' : 'Create New Event'}
+          {editingEvent ? (isEditingTemplate ? 'Edit Template' : 'Edit Event') : 'Create New Event'}
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -88,70 +90,72 @@ export function EventFormModal({ isOpen, editingEvent, onClose, onSubmit }: Even
             />
           </div>
 
-          <div className="flex items-center mb-4">
-            <input
-              type="checkbox"
-              id="is_template"
-              checked={form.is_template}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  is_template: e.target.checked,
-                  event_date: e.target.checked ? '' : form.event_date,
-                })
-              }
-              className="mr-2"
-            />
-            <label htmlFor="is_template" className="text-sm font-medium text-gray-700">
-              This is a recurring template (generate multiple dates)
-            </label>
-          </div>
-
-          {form.is_template ? (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Generating From <span className="text-xs text-gray-500">(optional)</span>
-              </label>
-              <input
-                type="date"
-                value={form.begin_date}
-                onChange={(e) => setForm({ ...form, begin_date: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Leave empty to start from today. You'll specify how many Sundays when you click
-                "Generate Sundays".
-              </p>
-            </div>
-          ) : (
+          {!isEditingTemplate && (
             <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <div className="flex items-center mb-4">
                 <input
-                  type="date"
-                  required
-                  value={form.event_date}
-                  onChange={(e) => setForm({ ...form, event_date: e.target.value })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+                  type="checkbox"
+                  id="is_template"
+                  checked={form.is_template}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      is_template: e.target.checked,
+                      event_date: e.target.checked ? '' : form.event_date,
+                    })
+                  }
+                  className="mr-2"
                 />
+                <label htmlFor="is_template" className="text-sm font-medium text-gray-700">
+                  This is a recurring template (generate multiple dates)
+                </label>
+              </div>
+
+              {form.is_template ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Generating From <span className="text-xs text-gray-500">(optional)</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={form.begin_date}
+                    onChange={(e) => setForm({ ...form, begin_date: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leave empty to start from today. You'll specify how many Sundays when you click
+                    "Generate Sundays".
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={form.event_date}
+                    onChange={(e) => setForm({ ...form, event_date: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  URL Slug <span className="text-gray-500 text-xs">(auto-generated)</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={form.slug}
+                  onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 bg-gray-50"
+                  placeholder="sunday-jan-2025"
+                />
+                <p className="text-xs text-gray-500 mt-1">You can edit this if needed</p>
               </div>
             </>
           )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              URL Slug <span className="text-gray-500 text-xs">(auto-generated)</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={form.slug}
-              onChange={(e) => setForm({ ...form, slug: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 bg-gray-50"
-              placeholder="sunday-jan-2025"
-            />
-            <p className="text-xs text-gray-500 mt-1">You can edit this if needed</p>
-          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
