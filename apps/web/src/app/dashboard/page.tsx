@@ -13,6 +13,8 @@ export default async function DashboardPage() {
 
   // Auto-accept any pending invites for this user
   const userEmail = session.user?.email;
+  let currentOrg = null;
+
   if (userEmail) {
     try {
       await query(
@@ -34,6 +36,8 @@ export default async function DashboardPage() {
     if (orgs.length === 0) {
       redirect('/onboarding/setup');
     }
+
+    currentOrg = orgs[0]; // Use first org (primary org)
   }
 
   return (
@@ -43,7 +47,10 @@ export default async function DashboardPage() {
           <div className="flex h-16 justify-between">
             <div className="flex">
               <div className="flex flex-shrink-0 items-center">
-                <h1 className="text-xl font-bold text-gray-900">Church Volunteers</h1>
+                <div className="flex flex-col">
+                  <h1 className="text-xl font-bold text-gray-900">Church Volunteers</h1>
+                  {userEmail && <p className="text-sm text-gray-600">{currentOrg?.name}</p>}
+                </div>
               </div>
             </div>
             <div className="flex items-center">
