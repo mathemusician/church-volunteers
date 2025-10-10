@@ -229,8 +229,9 @@ export default function VolunteerSignupPage() {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '0.25rem',
-                    padding: '0.75rem',
+                    gap: '0.15rem',
+                    padding: '0.5rem 0.625rem',
+                    minWidth: '3.5rem',
                     backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
                     color: isSelected ? '#ffffff' : '#1f2937',
                     border: `2px solid ${isSelected ? '#3b82f6' : '#e5e7eb'}`,
@@ -255,10 +256,10 @@ export default function VolunteerSignupPage() {
                 >
                   {eventDate && (
                     <>
-                      <div style={{ fontSize: '1.5rem', fontWeight: '700', lineHeight: '1' }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: '1' }}>
                         {eventDate.getDate()}
                       </div>
-                      <div style={{ fontSize: '0.75rem', opacity: 0.9 }}>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.9 }}>
                         {eventDate.toLocaleDateString('en-US', { month: 'short' })}
                       </div>
                     </>
