@@ -5,10 +5,11 @@ import { auth } from '@/auth';
 export async function middleware(request: NextRequest) {
   const session = await auth();
 
-  // Protect /dashboard and /protected routes
+  // Protect /dashboard, /protected, and /admin routes
   if (
     request.nextUrl.pathname.startsWith('/dashboard') ||
-    request.nextUrl.pathname.startsWith('/protected')
+    request.nextUrl.pathname.startsWith('/protected') ||
+    request.nextUrl.pathname.startsWith('/admin')
   ) {
     if (!session) {
       return NextResponse.redirect(new URL('/signin', request.url));
