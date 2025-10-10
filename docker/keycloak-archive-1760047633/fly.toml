@@ -1,0 +1,47 @@
+# fly.toml for Keycloak on Fly.io
+
+app = "church-volunteers-keycloak"
+
+primary_region = "ord"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Enables HTTP listener. Fly.io's proxy handles TLS termination.
+  KC_HTTP_ENABLED = "true"
+  # The port Keycloak will listen on inside the container.
+  KC_HTTP_PORT = "8080"
+  # The host Keycloak will bind to. 0.0.0.0 is required for Fly.io.
+  KC_HTTP_HOST = "0.0.0.0"
+  # Tells Keycloak it is running behind a reverse proxy.
+  KC_PROXY = "edge"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+  processes = ["app"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.http_checks]]
+    interval = "10s"
+    timeout = "2s"
+    method = "GET"
+    path = "/health/ready"
+    protocol = "http"
+    grace_period = "60s"
+    restarts = 3
+

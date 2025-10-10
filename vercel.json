@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd apps/web && npm install && npm run build",
+  "devCommand": "cd apps/web && npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": "apps/web/.next",
+  "regions": ["iad1"],
+  "env": {
+    "NEXTAUTH_URL": {
+      "type": "string",
+      "value": "https://your-app.vercel.app"
+    }
+  }
+}
