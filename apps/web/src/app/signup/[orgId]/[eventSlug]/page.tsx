@@ -140,7 +140,9 @@ export default function VolunteerSignupPage() {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
+    // Parse as local date to avoid timezone shifts
+    const [year, month, day] = dateString.split('T')[0].split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'long',
@@ -211,7 +213,12 @@ export default function VolunteerSignupPage() {
               Dates
             </h3>
             {siblingEvents.map((evt) => {
-              const eventDate = evt.event_date ? new Date(evt.event_date) : null;
+              const eventDate = evt.event_date
+                ? (() => {
+                    const [year, month, day] = evt.event_date.split('T')[0].split('-');
+                    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                  })()
+                : null;
               const isSelected = evt.slug === slug;
 
               return (
