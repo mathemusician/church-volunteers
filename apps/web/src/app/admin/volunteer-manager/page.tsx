@@ -31,6 +31,7 @@ export default function VolunteerManagerPage() {
     updateList,
     toggleLock,
     deleteList: removeList,
+    reorderLists,
   } = useLists(selectedEvent?.id || null);
 
   // Modal states
@@ -228,6 +229,7 @@ export default function VolunteerManagerPage() {
                   onEditList={openEditList}
                   onDeleteList={handleDeleteList}
                   onToggleLock={handleToggleLock}
+                  onReorder={reorderLists}
                 />
               </div>
             ) : (

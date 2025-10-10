@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { List } from '../hooks/useLists';
 
 interface ListsPanelProps {
@@ -6,6 +7,7 @@ interface ListsPanelProps {
   onEditList: (list: List) => void;
   onDeleteList: (listId: number) => void;
   onToggleLock: (list: List) => void;
+  onReorder: (listIds: number[]) => void;
 }
 
 export function ListsPanel({
@@ -14,7 +16,46 @@ export function ListsPanel({
   onEditList,
   onDeleteList,
   onToggleLock,
+  onReorder,
 }: ListsPanelProps) {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newLists = [...lists];
+    const [draggedItem] = newLists.splice(draggedIndex, 1);
+    newLists.splice(dropIndex, 0, draggedItem);
+
+    // Update positions in backend
+    const listIds = newLists.map((list) => list.id);
+    onReorder(listIds);
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   return (
     <>
       <div className="flex justify-end mb-4">
@@ -27,29 +68,50 @@ export function ListsPanel({
       </div>
 
       <div className="space-y-4">
-        {lists.map((list) => (
+        {lists.map((list, index) => (
           <div
             key={list.id}
-            className="border border-gray-200 rounded-lg p-4 hover:border-gray-300"
+            draggable
+            onDragStart={() => handleDragStart(index)}
+            onDragOver={(e) => handleDragOver(e, index)}
+            onDrop={(e) => handleDrop(e, index)}
+            onDragEnd={handleDragEnd}
+            className={`border border-gray-200 rounded-lg p-4 hover:border-gray-300 cursor-move transition-all ${
+              draggedIndex === index ? 'opacity-50' : ''
+            } ${
+              dragOverIndex === index && draggedIndex !== index ? 'border-blue-500 border-2' : ''
+            }`}
           >
             <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-gray-900">{list.title}</h3>
-                  {list.is_locked && (
-                    <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
-                      🔒 Locked
-                    </span>
-                  )}
-                  {list.max_slots && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                      {list.signup_count || 0}/{list.max_slots} slots
-                    </span>
+              <div className="flex-1 flex items-center gap-3">
+                <div className="text-gray-400 hover:text-gray-600">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 8h16M4 16h16"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900">{list.title}</h3>
+                    {list.is_locked && (
+                      <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
+                        🔒 Locked
+                      </span>
+                    )}
+                    {list.max_slots && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                        {list.signup_count || 0}/{list.max_slots} slots
+                      </span>
+                    )}
+                  </div>
+                  {list.description && (
+                    <p className="text-sm text-gray-600 mt-1">{list.description}</p>
                   )}
                 </div>
-                {list.description && (
-                  <p className="text-sm text-gray-600 mt-1">{list.description}</p>
-                )}
               </div>
               <div className="flex items-center gap-2">
                 <button

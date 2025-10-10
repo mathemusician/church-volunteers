@@ -123,6 +123,23 @@ export function useLists(eventId: number | null) {
     }
   };
 
+  const reorderLists = async (listIds: number[]) => {
+    if (!eventId) return { success: false, error: 'No event selected' };
+
+    const response = await fetch('/api/admin/lists/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listIds }),
+    });
+
+    if (response.ok) {
+      await fetchLists();
+      return { success: true };
+    } else {
+      return { success: false, error: 'Failed to reorder lists' };
+    }
+  };
+
   return {
     lists,
     loading,
@@ -132,5 +149,6 @@ export function useLists(eventId: number | null) {
     deleteList,
     toggleLock,
     clearList,
+    reorderLists,
   };
 }
