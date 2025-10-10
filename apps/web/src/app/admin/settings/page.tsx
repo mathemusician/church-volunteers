@@ -69,7 +69,7 @@ export default function SettingsPage() {
   };
 
   if (loading) {
-    return <div className="p-8">Loading...</div>;
+    return <div className="p-8 text-gray-900">Loading...</div>;
   }
 
   return (
@@ -92,7 +92,7 @@ export default function SettingsPage() {
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-5 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Organization Information</h2>
-            <p className="mt-1 text-sm text-gray-800">
+            <p className="mt-1 text-sm text-gray-900">
               Update your organization's name and description
             </p>
           </div>
@@ -124,7 +124,7 @@ export default function SettingsPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Brief description of your organization"
               />
-              <p className="mt-1 text-xs text-gray-700">
+              <p className="mt-1 text-xs text-gray-900">
                 This will be visible on public volunteer signup pages
               </p>
             </div>
@@ -147,7 +147,7 @@ export default function SettingsPage() {
               <code className="block px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-900">
                 {organization?.slug}
               </code>
-              <p className="mt-1 text-xs text-gray-700">Used in URLs - cannot be changed</p>
+              <p className="mt-1 text-xs text-gray-900">Used in URLs - cannot be changed</p>
             </div>
 
             <div>
@@ -155,7 +155,7 @@ export default function SettingsPage() {
               <code className="block px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-900">
                 {organization?.public_id}
               </code>
-              <p className="mt-1 text-xs text-gray-700">
+              <p className="mt-1 text-xs text-gray-900">
                 Used for volunteer signup URLs: /signup/{organization?.public_id}/event-name
               </p>
             </div>
