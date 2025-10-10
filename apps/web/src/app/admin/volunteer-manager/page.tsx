@@ -185,7 +185,10 @@ export default function VolunteerManagerPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between items-center">
             <div className="flex items-center gap-4">
-              <h1 className="text-xl font-bold text-gray-900">Volunteer Manager</h1>
+              <div className="flex flex-col">
+                <h1 className="text-xl font-bold text-gray-900">Volunteer Manager</h1>
+                <p className="text-sm text-gray-600">{orgContext.organizationName}</p>
+              </div>
               <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
                 ← Back to Dashboard
               </Link>
