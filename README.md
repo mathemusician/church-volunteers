@@ -4,7 +4,8 @@ A modern, secure, and scalable volunteer management system built with Next.js, T
 
 ## 🚀 Features
 
-- 🛡️ **Secure Authentication** - Keycloak OIDC with NextAuth.js
+- 🛡️ **Secure Authentication** - Auth.js v5 with Zitadel Cloud OIDC
+- 🍪 **Secure Session Cookies** - HttpOnly, Secure, and SameSite protection
 - 🗄️ **PostgreSQL with RLS** - Row Level Security for data protection
 - 🔒 **Security Headers** - Helmet-style middleware for enhanced security
 - 🧪 **Testing** - Jest with React Testing Library
@@ -139,12 +140,53 @@ npm run start
 | Frontend  | Next.js 15, React 19, TypeScript |
 | Styling   | TailwindCSS                      |
 | Backend   | Next.js API Routes               |
-| Database  | PostgreSQL 15                    |
-| Auth      | Keycloak, NextAuth.js            |
+| Database  | PostgreSQL 15 (Neon)             |
+| Auth      | Auth.js v5, Zitadel Cloud OIDC   |
 | Testing   | Jest, React Testing Library      |
 | Linting   | ESLint, Prettier                 |
 | CI/CD     | GitHub Actions                   |
 | Container | Docker, Docker Compose           |
+
+## 🔐 Security & Authentication
+
+### Cookie Configuration
+
+Our Auth.js v5 implementation uses secure cookies with the following settings:
+
+#### HttpOnly
+
+All session cookies have the `httpOnly` flag set to **true**, which prevents client-side JavaScript from accessing the cookies. This protects against XSS (Cross-Site Scripting) attacks.
+
+#### Secure
+
+In production, all cookies have the `secure` flag set to **true**, ensuring they are only transmitted over HTTPS connections. This prevents man-in-the-middle attacks.
+
+#### SameSite: Lax
+
+We use `sameSite: "lax"` for the following reasons:
+
+1. **OAuth Flow Compatibility**: `lax` allows cookies to be sent during top-level navigation (like OAuth redirects from Zitadel back to our app)
+2. **CSRF Protection**: Still provides protection against most CSRF attacks
+3. **User Experience**: Maintains session when users navigate from external links
+
+**Why not `strict`?**
+
+- `strict` would break OAuth callbacks because cookies wouldn't be sent when redirecting from Zitadel to our application
+
+**Why not `none`?**
+
+- `none` would require all requests to be cross-site and offers no CSRF protection
+- Not needed for our single-domain OAuth flow
+
+#### Cookie Prefixes
+
+- Production session cookies use `__Secure-` prefix (requires HTTPS)
+- CSRF tokens use `__Host-` prefix (requires HTTPS + same domain + path=/)
+- Development uses no prefix for localhost compatibility
+
+#### Configuration Location
+
+See `/apps/web/src/auth.ts` for the complete cookie configuration.
 
 ## 🤝 Contributing
 
