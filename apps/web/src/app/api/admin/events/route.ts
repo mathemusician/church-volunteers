@@ -17,7 +17,10 @@ export async function GET(_request: NextRequest) {
     }
 
     const result = await query(
-      'SELECT * FROM volunteer_events WHERE organization_id = $1 ORDER BY created_at DESC',
+      `SELECT * FROM volunteer_events 
+       WHERE organization_id = $1 
+       AND (is_template = true OR event_date >= CURRENT_DATE)
+       ORDER BY event_date ASC NULLS FIRST, created_at DESC`,
       [orgContext.organizationId]
     );
 

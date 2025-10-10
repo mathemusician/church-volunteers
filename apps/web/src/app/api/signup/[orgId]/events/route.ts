@@ -15,9 +15,13 @@ export async function GET(
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
 
-    // Get all active events for this organization
+    // Get all active upcoming events for this organization
     const eventsResult = await query(
-      'SELECT * FROM volunteer_events WHERE organization_id = $1 AND is_active = true ORDER BY event_date ASC',
+      `SELECT * FROM volunteer_events 
+       WHERE organization_id = $1 
+       AND is_active = true 
+       AND (is_template = true OR event_date >= CURRENT_DATE)
+       ORDER BY event_date ASC NULLS FIRST`,
       [org.id]
     );
 
