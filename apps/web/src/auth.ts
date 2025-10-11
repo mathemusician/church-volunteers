@@ -11,7 +11,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientSecret: process.env.AUTH_ZITADEL_SECRET,
       authorization: {
         params: {
-          scope: 'openid profile email',
+          scope: process.env.ZITADEL_ORG_ID
+            ? `openid profile email urn:zitadel:iam:org:id:${process.env.ZITADEL_ORG_ID}`
+            : 'openid profile email',
         },
       },
       checks: ['pkce', 'state'],

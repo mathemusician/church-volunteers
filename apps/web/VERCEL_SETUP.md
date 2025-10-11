@@ -21,6 +21,19 @@ Add these environment variables in your Vercel project settings:
 4. **AUTH_ZITADEL_SECRET**
    - Value: Your client secret from Zitadel (found in application settings)
 
+5. **ZITADEL_ORG_ID** (Required for Passkey Support)
+   - Value: Your ZITADEL organization ID
+   - Find in: ZITADEL Console → Organization → Settings
+   - This enables org-scoped login for proper passkey functionality
+
+6. **ZITADEL_SERVICE_CLIENT_ID** (Required for Passkey Email Links)
+   - Value: Service user client ID
+   - Create in: ZITADEL Console → Users → Service Users → New
+
+7. **ZITADEL_SERVICE_CLIENT_SECRET** (Required for Passkey Email Links)
+   - Value: Service user client secret
+   - Generate in: Service User → Client Credentials → New
+
 ### Branch-Scoped Variables for Staging
 
 For Preview deployments (staging branch), Vercel will automatically use:

@@ -1,6 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Church Volunteers - Volunteer Management System
+
+A modern, secure volunteer management application built with Next.js 14, Auth.js v5, and ZITADEL authentication.
+
+## Features
+
+- 🔐 **Passwordless Authentication** - Sign in with passkeys (WebAuthn)
+- 📋 **Event Management** - Create and manage volunteer events
+- 👥 **Team Collaboration** - Invite and manage organization members
+- 🎯 **Volunteer Signups** - Public signup pages for events
+- 🤖 **Automated Events** - Auto-generate weekly events from templates
+- 🔒 **Multi-tenant** - Organization-based access control
+
+## Authentication
+
+This app uses **ZITADEL** for authentication with support for:
+
+- Username + Password
+- **Passkeys (WebAuthn)** - Biometric and security key authentication
+- OAuth 2.0 / OpenID Connect
+
+### Passkey Support
+
+Users can add passkeys (Face ID, Touch ID, Windows Hello, YubiKey, etc.) for passwordless authentication:
+
+1. Navigate to **Account Settings** (`/dashboard/settings`)
+2. Add passkeys directly on the device or email a setup link
+3. Sign in with passkeys on the ZITADEL login page
+
+📘 **See [PASSKEY_SETUP.md](../../docs/PASSKEY_SETUP.md)** for complete setup instructions.
 
 ## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL database
+- ZITADEL account (for authentication)
+
+### Environment Variables
+
+Copy `.env.example` to `.env.local` and fill in your values:
+
+```bash
+cp .env.example .env.local
+```
+
+Required variables:
+
+- `AUTH_SECRET` - Generate with: `openssl rand -base64 32`
+- `AUTH_ZITADEL_ISSUER` - Your ZITADEL instance URL
+- `AUTH_ZITADEL_ID` - OAuth client ID
+- `AUTH_ZITADEL_SECRET` - OAuth client secret
+- `ZITADEL_ORG_ID` - Your organization ID (for passkeys)
+- `DATABASE_URL` - PostgreSQL connection string
+
+For passkey email functionality:
+
+- `ZITADEL_SERVICE_CLIENT_ID` - Service user client ID
+- `ZITADEL_SERVICE_CLIENT_SECRET` - Service user secret
+
+See [VERCEL_SETUP.md](./VERCEL_SETUP.md) for deployment configuration.
+
+### Run Development Server
 
 First, run the development server:
 

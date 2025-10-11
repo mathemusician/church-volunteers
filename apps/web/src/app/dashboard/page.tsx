@@ -98,8 +98,16 @@ export default async function DashboardPage() {
             href="/admin/settings"
             className="block rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow"
           >
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">⚙️ Settings</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">⚙️ Organization Settings</h3>
             <p className="text-sm text-gray-600">Update organization name and details</p>
+          </Link>
+
+          <Link
+            href="/dashboard/settings"
+            className="block rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow"
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">🔐 Account Settings</h3>
+            <p className="text-sm text-gray-600">Manage your passkeys and security settings</p>
           </Link>
 
           {/* User Info Card */}
