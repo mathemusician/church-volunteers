@@ -236,15 +236,22 @@ body {
   border-top: 1px dashed #d8dfeb;
   margin-top: auto;
   background: linear-gradient(180deg, #0000, #0000 55%, rgba(0, 0, 0, 0.02));
+  align-items: center;
 }
 
 .add-area input {
   flex: 1;
+  min-width: 0;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   padding: 0.5rem 0.6rem;
   background: #fff;
   color: #111827;
+}
+
+.add-area .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .add-area input:focus-visible {
