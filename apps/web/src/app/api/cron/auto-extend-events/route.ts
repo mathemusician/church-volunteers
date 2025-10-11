@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
-// GET - Auto-extend events (run daily via cron)
+// GET - Generate weekly events from templates (run daily via cron)
 // This should be called by a cron job (e.g., Vercel Cron, GitHub Actions, or external service)
 export async function GET(request: NextRequest) {
   try {
@@ -13,97 +13,137 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Find events with auto_extend enabled that haven't been extended yet
-    // We look for events 7 days in the past
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
-
-    const eventsToExtend = await query(
+    // Find all active templates
+    const templatesResult = await query(
       `SELECT * FROM volunteer_events 
-       WHERE auto_extend = true 
-       AND is_template = false
-       AND event_date = $1`,
-      [sevenDaysAgoStr]
+       WHERE is_template = true 
+       AND is_active = true`
     );
 
-    const extendedEvents = [];
+    const generatedEvents = [];
+    const today = new Date();
 
-    for (const event of eventsToExtend.rows) {
-      // Calculate next week's date
-      const currentDate = new Date(event.event_date);
-      const nextWeekDate = new Date(currentDate);
-      nextWeekDate.setDate(currentDate.getDate() + 7);
-      const nextWeekDateStr = nextWeekDate.toISOString().split('T')[0];
+    // Calculate dates for the next 4 weeks
+    const futureDates = [];
+    for (let i = 0; i < 4; i++) {
+      const futureDate = new Date(today);
+      futureDate.setDate(today.getDate() + i * 7);
+      futureDates.push(futureDate);
+    }
 
-      // Generate new slug and title with next week's date
-      const formattedDate = nextWeekDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      });
-      const baseTitle = event.title.replace(/ - \w+ \d+$/, ''); // Remove existing date suffix if present
-      const newTitle = `${baseTitle} - ${formattedDate}`;
-      const newSlug = `${event.slug.split('-').slice(0, -3).join('-')}-${nextWeekDateStr}`;
-
-      // Check if next week's event already exists
-      const existingCheck = await query(
-        'SELECT id FROM volunteer_events WHERE slug = $1 OR (event_date = $2 AND title LIKE $3)',
-        [newSlug, nextWeekDateStr, `${baseTitle}%`]
-      );
-
-      if (existingCheck.rows.length > 0) {
-        continue; // Skip if already exists
+    for (const template of templatesResult.rows) {
+      // Determine which day of week this template is for
+      let targetDayOfWeek = 0; // Sunday by default
+      if (template.begin_date) {
+        const beginDate = new Date(template.begin_date);
+        targetDayOfWeek = beginDate.getDay();
       }
 
-      // Create new event for next week
-      const newEventResult = await query(
-        `INSERT INTO volunteer_events 
-          (slug, title, description, event_date, is_active, is_template, template_id, auto_extend) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-        RETURNING *`,
-        [
-          newSlug,
-          newTitle,
-          event.description,
-          nextWeekDateStr,
-          event.is_active,
-          false,
-          event.template_id,
-          event.auto_extend, // Keep auto-extend enabled for future weeks
-        ]
-      );
+      // For each of the next 4 weeks, check if we need to create an event
+      for (const checkDate of futureDates) {
+        // Adjust to the target day of week
+        const daysUntilTarget = (targetDayOfWeek - checkDate.getDay() + 7) % 7;
+        const targetDate = new Date(checkDate);
+        targetDate.setDate(checkDate.getDate() + daysUntilTarget);
 
-      const newEvent = newEventResult.rows[0];
+        const targetDateStr = targetDate.toISOString().split('T')[0];
 
-      // Copy all lists from the original event
-      const listsResult = await query(
-        'SELECT * FROM volunteer_lists WHERE event_id = $1 ORDER BY position ASC',
-        [event.id]
-      );
-
-      for (const list of listsResult.rows) {
-        await query(
-          `INSERT INTO volunteer_lists 
-            (event_id, title, description, max_slots, is_locked, position) 
-          VALUES ($1, $2, $3, $4, $5, $6)`,
-          [newEvent.id, list.title, list.description, list.max_slots, list.is_locked, list.position]
+        // Check if event already exists for this template + date
+        const existingCheck = await query(
+          `SELECT id FROM volunteer_events 
+           WHERE template_id = $1 
+           AND event_date = $2`,
+          [template.id, targetDateStr]
         );
-      }
 
-      extendedEvents.push({
-        original: event.title,
-        new: newEvent.title,
-        date: nextWeekDateStr,
-      });
+        if (existingCheck.rows.length > 0) {
+          continue; // Event already exists
+        }
+
+        // Generate title with date
+        const formattedDate = targetDate.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        });
+        const newTitle = `${template.title} - ${formattedDate}`;
+
+        // Generate unique slug
+        let slug = `${template.slug}-${targetDateStr}`;
+        let suffix = 0;
+        const MAX_ATTEMPTS = 100;
+
+        while (suffix < MAX_ATTEMPTS) {
+          const slugCheck = await query(
+            'SELECT id FROM volunteer_events WHERE organization_id = $1 AND slug = $2',
+            [template.organization_id, slug]
+          );
+
+          if (slugCheck.rows.length === 0) {
+            break;
+          }
+
+          suffix++;
+          slug = `${template.slug}-${targetDateStr}${suffix}`;
+        }
+
+        // Create new event from template
+        const newEventResult = await query(
+          `INSERT INTO volunteer_events 
+            (organization_id, slug, title, description, event_date, is_active, is_template, template_id, sort_order) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+          RETURNING *`,
+          [
+            template.organization_id,
+            slug,
+            newTitle,
+            template.description,
+            targetDateStr,
+            true,
+            false,
+            template.id,
+            null,
+          ]
+        );
+
+        const newEvent = newEventResult.rows[0];
+
+        // Copy all lists from the template
+        const listsResult = await query(
+          'SELECT * FROM volunteer_lists WHERE event_id = $1 ORDER BY position ASC',
+          [template.id]
+        );
+
+        for (const list of listsResult.rows) {
+          await query(
+            `INSERT INTO volunteer_lists 
+              (event_id, title, description, max_slots, is_locked, position) 
+            VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              newEvent.id,
+              list.title,
+              list.description,
+              list.max_slots,
+              list.is_locked,
+              list.position,
+            ]
+          );
+        }
+
+        generatedEvents.push({
+          template: template.title,
+          new: newEvent.title,
+          date: targetDateStr,
+        });
+      }
     }
 
     return NextResponse.json({
-      message: `Auto-extended ${extendedEvents.length} event(s)`,
-      extended: extendedEvents,
+      message: `Generated ${generatedEvents.length} event(s) from templates`,
+      generated: generatedEvents,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error auto-extending events:', error);
+    console.error('Error generating events from templates:', error);
     return NextResponse.json({ error: 'Internal server error', details: error }, { status: 500 });
   }
 }
