@@ -229,13 +229,13 @@ export default function VolunteerSignupPage() {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '0.15rem',
-                    padding: '0.5rem 0.625rem',
-                    minWidth: '3.5rem',
+                    gap: '0.1rem',
+                    padding: '0.4rem 0.35rem',
+                    minWidth: '2.75rem',
                     backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
                     color: isSelected ? '#ffffff' : '#1f2937',
                     border: `2px solid ${isSelected ? '#3b82f6' : '#e5e7eb'}`,
-                    borderRadius: '0.5rem',
+                    borderRadius: '0.375rem',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     fontSize: '0.875rem',
@@ -256,10 +256,10 @@ export default function VolunteerSignupPage() {
                 >
                   {eventDate && (
                     <>
-                      <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: '1' }}>
+                      <div style={{ fontSize: '1.125rem', fontWeight: '700', lineHeight: '1' }}>
                         {eventDate.getDate()}
                       </div>
-                      <div style={{ fontSize: '0.7rem', opacity: 0.9 }}>
+                      <div style={{ fontSize: '0.625rem', opacity: 0.9 }}>
                         {eventDate.toLocaleDateString('en-US', { month: 'short' })}
                       </div>
                     </>
