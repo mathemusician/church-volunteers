@@ -37,7 +37,16 @@ export function ListFormModal({ isOpen, editingList, onClose, onSubmit }: ListFo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const listData = editingList ? { id: editingList.id, ...form } : form;
+    // Convert empty max_slots to null for proper database handling
+    const max_slots = form.max_slots ? parseInt(form.max_slots) : null;
+
+    const listData = {
+      ...(editingList ? { id: editingList.id } : {}),
+      title: form.title,
+      description: form.description || null,
+      max_slots,
+      is_locked: form.is_locked,
+    };
 
     const result = await onSubmit(listData);
     if (result.success) {

@@ -82,10 +82,10 @@ export async function PATCH(request: NextRequest) {
 
     const result = await query(
       `UPDATE volunteer_lists 
-      SET title = COALESCE($2, title),
-          description = COALESCE($3, description),
-          max_slots = COALESCE($4, max_slots),
-          is_locked = COALESCE($5, is_locked),
+      SET title = $2,
+          description = $3,
+          max_slots = $4,
+          is_locked = $5,
           updated_at = NOW()
       WHERE id = $1
       RETURNING *`,
