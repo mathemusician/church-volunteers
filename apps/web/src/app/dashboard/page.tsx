@@ -122,7 +122,10 @@ export default async function DashboardPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Section - Volunteer Manager (Hero) */}
           <div className="lg:col-span-2">
-            <div className="rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 p-8 shadow-lg text-white">
+            <Link
+              href="/admin/volunteer-manager"
+              className="block rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 p-8 shadow-lg text-white hover:shadow-xl transition-all hover:from-blue-600 hover:to-blue-700 cursor-pointer"
+            >
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h2 className="text-3xl font-bold mb-2">📋 Volunteer Manager</h2>
@@ -132,12 +135,9 @@ export default async function DashboardPage() {
                 </div>
               </div>
               <div className="mt-6">
-                <Link
-                  href="/admin/volunteer-manager"
-                  className="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow hover:bg-blue-50 transition-colors"
-                >
+                <span className="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow hover:bg-blue-50 transition-colors">
                   Open Volunteer Manager →
-                </Link>
+                </span>
               </div>
               <div className="mt-6 grid grid-cols-3 gap-4 pt-6 border-t border-blue-400">
                 <div>
@@ -153,46 +153,46 @@ export default async function DashboardPage() {
                   <div className="text-sm text-blue-100">Total Volunteers</div>
                 </div>
               </div>
-            </div>
+            </Link>
           </div>
 
           {/* Sidebar - Quick Links */}
           <div className="space-y-4">
             {/* Team Members */}
-            <div className="rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow">
+            <Link
+              href="/admin/members"
+              className="block rounded-lg bg-white p-6 shadow hover:shadow-md transition-all cursor-pointer hover:border-blue-200 border border-transparent"
+            >
               <h3 className="text-lg font-semibold text-gray-900 mb-2">👥 Team Members</h3>
               <p className="text-sm text-gray-600 mb-4">Invite and manage organization members</p>
-              <Link
-                href="/admin/members"
-                className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
-              >
+              <span className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700">
                 Manage team →
-              </Link>
-            </div>
+              </span>
+            </Link>
 
             {/* Organization Settings */}
-            <div className="rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow">
+            <Link
+              href="/admin/settings"
+              className="block rounded-lg bg-white p-6 shadow hover:shadow-md transition-all cursor-pointer hover:border-blue-200 border border-transparent"
+            >
               <h3 className="text-lg font-semibold text-gray-900 mb-2">⚙️ Organization</h3>
               <p className="text-sm text-gray-600 mb-4">Update organization name and details</p>
-              <Link
-                href="/admin/settings"
-                className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
-              >
+              <span className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700">
                 Settings →
-              </Link>
-            </div>
+              </span>
+            </Link>
 
             {/* Account Settings */}
-            <div className="rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow">
+            <Link
+              href="/dashboard/settings"
+              className="block rounded-lg bg-white p-6 shadow hover:shadow-md transition-all cursor-pointer hover:border-blue-200 border border-transparent"
+            >
               <h3 className="text-lg font-semibold text-gray-900 mb-2">🔐 Your Account</h3>
               <p className="text-sm text-gray-600 mb-4">Manage passkeys and security</p>
-              <Link
-                href="/dashboard/settings"
-                className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
-              >
+              <span className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700">
                 Account settings →
-              </Link>
-            </div>
+              </span>
+            </Link>
 
             {/* User Info */}
             <div className="rounded-lg bg-gray-50 p-6 border border-gray-200">
