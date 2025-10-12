@@ -1,4 +1,4 @@
-# Church Volunteers Management System
+# Volunteers Management System
 
 A modern, secure, and scalable volunteer management system built with Next.js, TypeScript, and PostgreSQL.
 

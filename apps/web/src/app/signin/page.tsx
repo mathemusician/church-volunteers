@@ -16,8 +16,9 @@ export default async function SignInPage() {
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
             Sign in to your account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Church Volunteers Management System
+          <p className="mt-2 text-center text-sm text-gray-600">Volunteer Management System</p>
+          <p className="mt-2 text-center text-xs text-gray-500">
+            New user? You'll be able to create an account on the next screen.
           </p>
         </div>
         <form

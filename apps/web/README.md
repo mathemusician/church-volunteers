@@ -1,4 +1,4 @@
-# Church Volunteers - Volunteer Management System
+# Volunteers - Volunteer Management System
 
 A modern, secure volunteer management application built with Next.js 14, Auth.js v5, and ZITADEL authentication.
 

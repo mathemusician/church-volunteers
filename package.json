@@ -1,8 +1,8 @@
 {
-  "name": "church-volunteers",
+  "name": "volunteers",
   "version": "1.0.0",
   "private": true,
-  "description": "A modern volunteer management system for churches",
+  "description": "A modern volunteer management system",
   "workspaces": [
     "apps/*",
     "packages/*"

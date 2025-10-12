@@ -48,7 +48,7 @@ export default async function DashboardPage() {
             <div className="flex">
               <div className="flex flex-shrink-0 items-center">
                 <div className="flex flex-col">
-                  <h1 className="text-xl font-bold text-gray-900">Church Volunteers</h1>
+                  <h1 className="text-xl font-bold text-gray-900">Volunteers</h1>
                   {userEmail && <p className="text-sm text-gray-600">{currentOrg?.name}</p>}
                 </div>
               </div>

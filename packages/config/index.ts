@@ -1,8 +1,8 @@
 // Shared configuration for the Church Volunteers application
 
 export const APP_CONFIG = {
-  name: 'Church Volunteers',
-  description: 'A modern volunteer management system for churches',
+  name: 'Volunteers',
+  description: 'A modern volunteer management system',
   version: '1.0.0',
 } as const;
 

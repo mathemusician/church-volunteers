@@ -27,7 +27,7 @@ export default async function Home() {
 
           {/* Title */}
           <h1 className="text-5xl sm:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
-            Church Volunteers
+            Volunteers
           </h1>
 
           {/* Subtitle */}
