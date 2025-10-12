@@ -75,14 +75,31 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <nav className="bg-white shadow-sm">
+      <nav className="bg-white shadow-sm border-b border-gray-200">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 justify-between items-center">
+          <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-4">
-              <h1 className="text-xl font-bold text-gray-900">Organization Settings</h1>
-              <Link href="/dashboard" className="text-sm text-gray-800 hover:text-gray-900">
-                ← Back to Dashboard
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors group"
+              >
+                <svg
+                  className="w-5 h-5 transition-transform group-hover:-translate-x-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+                <span className="text-sm font-medium">Dashboard</span>
               </Link>
+              <div className="h-8 w-px bg-gray-300"></div>
+              <h1 className="text-xl font-bold text-gray-900">Organization Settings</h1>
             </div>
           </div>
         </div>
