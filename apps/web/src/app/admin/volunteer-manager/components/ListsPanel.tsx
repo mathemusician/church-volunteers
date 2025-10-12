@@ -117,8 +117,10 @@ export function ListsPanel({
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, originalIndex)}
               onDragEnd={handleDragEnd}
-              className={`border border-gray-200 rounded-lg p-4 hover:border-gray-300 cursor-move transition-all ${
-                draggedIndex === originalIndex ? 'opacity-50' : ''
+              className={`bg-white border border-gray-200 rounded-lg p-4 cursor-move transition-all ${
+                draggedIndex === originalIndex
+                  ? 'opacity-50 scale-95'
+                  : 'hover:bg-gray-50 hover:border-gray-300 hover:shadow-md'
               }`}
             >
               <div className="flex items-start justify-between">
