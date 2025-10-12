@@ -117,7 +117,12 @@ export function ListsPanel({
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, originalIndex)}
               onDragEnd={handleDragEnd}
-              className={`bg-white border border-gray-200 rounded-lg p-4 cursor-move transition-all ${
+              onClick={(e) => {
+                // Don't trigger edit if clicking on buttons
+                if ((e.target as HTMLElement).closest('button')) return;
+                onEditList(list);
+              }}
+              className={`bg-white border border-gray-200 rounded-lg p-4 cursor-pointer transition-all ${
                 draggedIndex === originalIndex
                   ? 'opacity-50 scale-95'
                   : 'hover:bg-gray-50 hover:border-gray-300 hover:shadow-md'
@@ -125,7 +130,7 @@ export function ListsPanel({
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 flex items-center gap-3">
-                  <div className="text-gray-400 hover:text-gray-600">
+                  <div className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
@@ -154,10 +159,10 @@ export function ListsPanel({
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => onToggleLock(list)}
-                    className={`text-xs px-3 py-1 rounded ${
+                    className={`text-xs px-3 py-1 rounded transition-colors ${
                       list.is_locked
                         ? 'bg-red-100 text-red-700 hover:bg-red-200'
                         : 'bg-green-100 text-green-700 hover:bg-green-200'
@@ -166,14 +171,8 @@ export function ListsPanel({
                     {list.is_locked ? 'Unlock' : 'Lock'}
                   </button>
                   <button
-                    onClick={() => onEditList(list)}
-                    className="text-xs px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  >
-                    Edit
-                  </button>
-                  <button
                     onClick={() => onDeleteList(list.id)}
-                    className="text-xs px-3 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200"
+                    className="text-xs px-3 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
                   >
                     Delete
                   </button>
