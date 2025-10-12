@@ -14,6 +14,11 @@ export default async function DashboardPage() {
   // Auto-accept any pending invites for this user
   const userEmail = session.user?.email;
   let currentOrg = null;
+  const stats = {
+    templates: 0,
+    futureEvents: 0,
+    totalVolunteers: 0,
+  };
 
   if (userEmail) {
     try {
@@ -38,6 +43,44 @@ export default async function DashboardPage() {
     }
 
     currentOrg = orgs[0]; // Use first org (primary org)
+
+    // Fetch dashboard statistics
+    try {
+      // Count templates
+      const templatesResult = await query(
+        `SELECT COUNT(*) as count 
+         FROM volunteer_events 
+         WHERE organization_id = $1 AND is_template = true AND is_active = true`,
+        [currentOrg.id]
+      );
+      stats.templates = parseInt(templatesResult.rows[0]?.count || '0');
+
+      // Count future events (event_date >= today)
+      const futureEventsResult = await query(
+        `SELECT COUNT(*) as count 
+         FROM volunteer_events 
+         WHERE organization_id = $1 
+         AND is_template = false 
+         AND is_active = true 
+         AND event_date >= CURRENT_DATE`,
+        [currentOrg.id]
+      );
+      stats.futureEvents = parseInt(futureEventsResult.rows[0]?.count || '0');
+
+      // Count total volunteers (signups)
+      const volunteersResult = await query(
+        `SELECT COUNT(*) as count 
+         FROM volunteer_signups vs
+         JOIN volunteer_lists vl ON vs.list_id = vl.id
+         JOIN volunteer_events ve ON vl.event_id = ve.id
+         WHERE ve.organization_id = $1`,
+        [currentOrg.id]
+      );
+      stats.totalVolunteers = parseInt(volunteersResult.rows[0]?.count || '0');
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      // Continue with zeros if stats fail to load
+    }
   }
 
   return (
@@ -76,53 +119,91 @@ export default async function DashboardPage() {
       </nav>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Quick Actions */}
-          <Link
-            href="/admin/volunteer-manager"
-            className="block rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">📋 Volunteer Manager</h3>
-            <p className="text-sm text-gray-600">Manage events, lists, and volunteer signups</p>
-          </Link>
-
-          <Link
-            href="/admin/members"
-            className="block rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">👥 Team Members</h3>
-            <p className="text-sm text-gray-600">Invite and manage organization members</p>
-          </Link>
-
-          <Link
-            href="/admin/settings"
-            className="block rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">⚙️ Organization Settings</h3>
-            <p className="text-sm text-gray-600">Update organization name and details</p>
-          </Link>
-
-          <Link
-            href="/dashboard/settings"
-            className="block rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">🔐 Account Settings</h3>
-            <p className="text-sm text-gray-600">Manage your passkeys and security settings</p>
-          </Link>
-
-          {/* User Info Card */}
-          <div className="rounded-lg bg-white p-6 shadow md:col-span-2">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">User Information</h3>
-            <dl className="space-y-2">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Name</dt>
-                <dd className="text-sm text-gray-900">{session.user?.name || 'N/A'}</dd>
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Main Section - Volunteer Manager (Hero) */}
+          <div className="lg:col-span-2">
+            <div className="rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 p-8 shadow-lg text-white">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">📋 Volunteer Manager</h2>
+                  <p className="text-blue-100 text-lg">
+                    Create events, manage volunteer lists, and track signups
+                  </p>
+                </div>
               </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Email</dt>
-                <dd className="text-sm text-gray-900">{session.user?.email || 'N/A'}</dd>
+              <div className="mt-6">
+                <Link
+                  href="/admin/volunteer-manager"
+                  className="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow hover:bg-blue-50 transition-colors"
+                >
+                  Open Volunteer Manager →
+                </Link>
               </div>
-            </dl>
+              <div className="mt-6 grid grid-cols-3 gap-4 pt-6 border-t border-blue-400">
+                <div>
+                  <div className="text-2xl font-bold">{stats.templates}</div>
+                  <div className="text-sm text-blue-100">Templates</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{stats.futureEvents}</div>
+                  <div className="text-sm text-blue-100">Future Events</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{stats.totalVolunteers}</div>
+                  <div className="text-sm text-blue-100">Total Volunteers</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar - Quick Links */}
+          <div className="space-y-4">
+            {/* Team Members */}
+            <div className="rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">👥 Team Members</h3>
+              <p className="text-sm text-gray-600 mb-4">Invite and manage organization members</p>
+              <Link
+                href="/admin/members"
+                className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                Manage team →
+              </Link>
+            </div>
+
+            {/* Organization Settings */}
+            <div className="rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">⚙️ Organization</h3>
+              <p className="text-sm text-gray-600 mb-4">Update organization name and details</p>
+              <Link
+                href="/admin/settings"
+                className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                Settings →
+              </Link>
+            </div>
+
+            {/* Account Settings */}
+            <div className="rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">🔐 Your Account</h3>
+              <p className="text-sm text-gray-600 mb-4">Manage passkeys and security</p>
+              <Link
+                href="/dashboard/settings"
+                className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                Account settings →
+              </Link>
+            </div>
+
+            {/* User Info */}
+            <div className="rounded-lg bg-gray-50 p-6 border border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Signed in as</h3>
+              <div className="space-y-1">
+                <div className="text-sm font-medium text-gray-900">
+                  {session.user?.name || 'N/A'}
+                </div>
+                <div className="text-xs text-gray-600">{session.user?.email || 'N/A'}</div>
+              </div>
+            </div>
           </div>
         </div>
       </main>
