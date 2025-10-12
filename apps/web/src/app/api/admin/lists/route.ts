@@ -85,7 +85,7 @@ export async function PATCH(request: NextRequest) {
       `UPDATE volunteer_lists 
       SET title = COALESCE($2, title),
           description = COALESCE($3, description),
-          max_slots = CASE WHEN $4::text IS NULL THEN max_slots ELSE $4 END,
+          max_slots = CASE WHEN $4 IS NULL THEN max_slots ELSE $4::integer END,
           is_locked = COALESCE($5, is_locked),
           updated_at = NOW()
       WHERE id = $1
