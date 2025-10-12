@@ -74,23 +74,45 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id, title, description, max_slots, is_locked } = await request.json();
+    const body = await request.json();
+    const { id, title, description, max_slots, is_locked } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'List ID is required' }, { status: 400 });
     }
 
-    // Only update fields that are provided (not undefined)
+    // Build dynamic update query based on provided fields
+    const updates: string[] = ['updated_at = NOW()'];
+    const values: any[] = [id];
+    let paramCount = 2;
+
+    if (title !== undefined) {
+      updates.push(`title = $${paramCount}`);
+      values.push(title);
+      paramCount++;
+    }
+    if (description !== undefined) {
+      updates.push(`description = $${paramCount}`);
+      values.push(description);
+      paramCount++;
+    }
+    if (max_slots !== undefined) {
+      updates.push(`max_slots = $${paramCount}`);
+      values.push(max_slots);
+      paramCount++;
+    }
+    if (is_locked !== undefined) {
+      updates.push(`is_locked = $${paramCount}`);
+      values.push(is_locked);
+      paramCount++;
+    }
+
     const result = await query(
       `UPDATE volunteer_lists 
-      SET title = COALESCE($2, title),
-          description = COALESCE($3, description),
-          max_slots = CASE WHEN $4 IS NULL THEN max_slots ELSE $4::integer END,
-          is_locked = COALESCE($5, is_locked),
-          updated_at = NOW()
+      SET ${updates.join(', ')}
       WHERE id = $1
       RETURNING *`,
-      [id, title, description, max_slots, is_locked]
+      values
     );
 
     if (result.rows.length === 0) {
