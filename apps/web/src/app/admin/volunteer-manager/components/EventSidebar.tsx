@@ -243,40 +243,28 @@ export function EventSidebar({
           return (
             <div key={template.id}>
               {/* Template */}
-              <div
-                className="flex items-center gap-1"
-                draggable
-                onDragStart={() => handleTemplateDragStart(index)}
-                onDragEnter={(e) => handleTemplateDragEnter(e, index)}
-                onDragOver={handleTemplateDragOver}
-                onDrop={(e) => handleTemplateDrop(e, index, templates)}
-                onDragEnd={handleTemplateDragEnd}
-              >
-                <div className="text-gray-400 hover:text-gray-600 cursor-move px-1">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 8h16M4 16h16"
-                    />
-                  </svg>
-                </div>
+              <div className="flex items-center gap-1">
                 {instances.length > 0 && (
                   <button
                     onClick={() => toggleTemplate(template.id)}
-                    className="p-1 hover:bg-gray-100 rounded"
+                    className="p-1 hover:bg-gray-100 rounded z-10"
                   >
                     <span className="text-xs">{isExpanded ? '▼' : '▶'}</span>
                   </button>
                 )}
                 <button
                   onClick={() => onSelectEvent(template)}
-                  className={`flex-1 text-left px-3 py-2 rounded-md text-sm transition-opacity ${
+                  draggable
+                  onDragStart={() => handleTemplateDragStart(index)}
+                  onDragEnter={(e) => handleTemplateDragEnter(e, index)}
+                  onDragOver={handleTemplateDragOver}
+                  onDrop={(e) => handleTemplateDrop(e, index, templates)}
+                  onDragEnd={handleTemplateDragEnd}
+                  className={`flex-1 text-left px-3 py-2 rounded-md text-sm transition-all cursor-move ${
                     selectedEvent?.id === template.id
                       ? 'bg-blue-100 text-blue-700 font-medium'
                       : 'hover:bg-gray-100 text-gray-900'
-                  } ${draggedTemplateIndex === index ? 'opacity-50' : ''}`}
+                  } ${draggedTemplateIndex === index ? 'opacity-50 scale-95' : 'hover:shadow-md'}`}
                 >
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-1">
@@ -341,44 +329,30 @@ export function EventSidebar({
 
         {/* Standalone events (no template) */}
         {standalone.map((event, index) => (
-          <div
+          <button
             key={event.id}
-            className="flex items-center gap-1"
+            onClick={() => onSelectEvent(event)}
             draggable
             onDragStart={() => handleStandaloneDragStart(index)}
             onDragEnter={(e) => handleStandaloneDragEnter(e, index)}
             onDragOver={handleStandaloneDragOver}
             onDrop={(e) => handleStandaloneDrop(e, index, standalone)}
             onDragEnd={handleStandaloneDragEnd}
+            className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all cursor-move ${
+              selectedEvent?.id === event.id
+                ? 'bg-blue-100 text-blue-700 font-medium'
+                : 'hover:bg-gray-100 text-gray-900'
+            } ${draggedStandaloneIndex === index ? 'opacity-50 scale-95' : 'hover:shadow-md'}`}
           >
-            <div className="text-gray-400 hover:text-gray-600 cursor-move px-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 8h16M4 16h16"
-                />
-              </svg>
-            </div>
-            <button
-              onClick={() => onSelectEvent(event)}
-              className={`flex-1 text-left px-3 py-2 rounded-md text-sm transition-opacity ${
-                selectedEvent?.id === event.id
-                  ? 'bg-blue-100 text-blue-700 font-medium'
-                  : 'hover:bg-gray-100 text-gray-900'
-              } ${draggedStandaloneIndex === index ? 'opacity-50' : ''}`}
-            >
-              <div className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-1">
-                  <span className="font-medium">{event.title}</span>
-                </div>
-                {formatEventDate(event) && (
-                  <span className="text-xs text-gray-600">{formatEventDate(event)}</span>
-                )}
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-1">
+                <span className="font-medium">{event.title}</span>
               </div>
-            </button>
-          </div>
+              {formatEventDate(event) && (
+                <span className="text-xs text-gray-600">{formatEventDate(event)}</span>
+              )}
+            </div>
+          </button>
         ))}
 
         {events.length === 0 && <p className="text-sm text-gray-500">No events yet</p>}
