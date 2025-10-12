@@ -80,12 +80,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'List ID is required' }, { status: 400 });
     }
 
+    // Only update fields that are provided (not undefined)
     const result = await query(
       `UPDATE volunteer_lists 
-      SET title = $2,
-          description = $3,
-          max_slots = $4,
-          is_locked = $5,
+      SET title = COALESCE($2, title),
+          description = COALESCE($3, description),
+          max_slots = CASE WHEN $4::text IS NULL THEN max_slots ELSE $4 END,
+          is_locked = COALESCE($5, is_locked),
           updated_at = NOW()
       WHERE id = $1
       RETURNING *`,
