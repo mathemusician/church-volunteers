@@ -7,7 +7,10 @@ import { auth } from '@/auth';
  * Removes a specific passkey for the current user
  * Uses the user's access token to call ZITADEL Auth API
  */
-export async function DELETE(request: NextRequest, { params }: { params: { tokenId: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ tokenId: string }> }
+) {
   try {
     const session = await auth();
 
@@ -20,7 +23,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { token
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
-    const { tokenId } = params;
+    const { tokenId } = await params;
 
     if (!tokenId) {
       return NextResponse.json({ error: 'Token ID is required' }, { status: 400 });
