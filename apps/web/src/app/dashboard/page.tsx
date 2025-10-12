@@ -4,6 +4,11 @@ import { getUserOrganizations } from '@/lib/models/organization';
 import { query } from '@/lib/db';
 import Link from 'next/link';
 
+export const metadata = {
+  title: 'Dashboard - Volunteers',
+  description: 'Manage your volunteers and events',
+};
+
 export default async function DashboardPage() {
   const session = await auth();
 

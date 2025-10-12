@@ -1,13 +1,23 @@
-import Link from 'next/link';
 import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
 
-export default async function Home() {
+export const metadata = {
+  title: 'Home - Volunteers',
+  description: 'Volunteer Management System',
+};
+
+export default async function HomePage() {
   const session = await auth();
+
+  if (!session) {
+    return redirect('/signin');
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="flex flex-col items-center justify-center min-h-screen px-4 py-16">
-        <main className="flex flex-col items-center text-center max-w-3xl">
+        <main className="flex flex-col items-center text-center max-w-5xl mx-auto w-full">
           {/* Icon/Logo */}
           <div className="mb-8 w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
             <svg
