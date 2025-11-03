@@ -4,10 +4,10 @@ import { query } from '@/lib/db';
 // GET - Fetch availability sheet with all days and signups (optionally for a specific week)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orgId: string; sheetSlug: string } }
+  { params }: { params: Promise<{ orgId: string; sheetSlug: string }> }
 ) {
   try {
-    const { orgId, sheetSlug } = params;
+    const { orgId, sheetSlug } = await params;
     const { searchParams } = new URL(request.url);
     const weekStart = searchParams.get('week'); // ISO date string (YYYY-MM-DD) of Monday
 

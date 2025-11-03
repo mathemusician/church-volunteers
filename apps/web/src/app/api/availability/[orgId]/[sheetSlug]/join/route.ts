@@ -4,10 +4,10 @@ import { query } from '@/lib/db';
 // POST - Join a specific day
 export async function POST(
   request: NextRequest,
-  { params }: { params: { orgId: string; sheetSlug: string } }
+  { params }: { params: Promise<{ orgId: string; sheetSlug: string }> }
 ) {
   try {
-    const { orgId, sheetSlug } = params;
+    const { orgId, sheetSlug } = await params;
     const body = await request.json();
     const { dayOfWeek, name, weekStart } = body;
 
@@ -88,10 +88,10 @@ export async function POST(
 // DELETE - Leave a specific day
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { orgId: string; sheetSlug: string } }
+  { params }: { params: Promise<{ orgId: string; sheetSlug: string }> }
 ) {
   try {
-    const { orgId, sheetSlug } = params;
+    const { orgId, sheetSlug } = await params;
     const body = await request.json();
     const { dayOfWeek, name, weekStart } = body;
 
