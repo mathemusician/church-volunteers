@@ -390,6 +390,9 @@ export default function VolunteerSignupPage() {
                     ? 1
                     : 0.4,
                 transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
               }}
               onMouseEnter={(e) => {
                 if (
@@ -404,6 +407,34 @@ export default function VolunteerSignupPage() {
               }}
             >
               My signups
+              {volunteerName &&
+                (() => {
+                  const count = lists.reduce(
+                    (total, list) =>
+                      total + list.signups.filter((s) => s.name === volunteerName).length,
+                    0
+                  );
+                  return count > 0 ? (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '20px',
+                        height: '20px',
+                        padding: '0 6px',
+                        backgroundColor: '#2563eb',
+                        color: '#ffffff',
+                        borderRadius: '10px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        lineHeight: '1',
+                      }}
+                    >
+                      {count}
+                    </span>
+                  ) : null;
+                })()}
             </button>
           </div>
         </div>
@@ -616,6 +647,8 @@ export default function VolunteerSignupPage() {
             {lists.map((list) => {
               const isExpanded = expandedSections[list.id] ?? list.signups.length > 0;
               const hasSignups = list.signups.length > 0;
+              const userHasSignup =
+                volunteerName && list.signups.some((s) => s.name === volunteerName);
 
               return (
                 <section
@@ -629,6 +662,8 @@ export default function VolunteerSignupPage() {
                     gap: '0',
                     position: 'relative',
                     overflow: 'hidden',
+                    borderLeft: userHasSignup ? '4px solid #2563eb' : undefined,
+                    paddingLeft: userHasSignup ? '0' : undefined,
                   }}
                 >
                   {/* Accordion Header - Always Visible */}
@@ -940,44 +975,51 @@ export default function VolunteerSignupPage() {
                             </div>
                           )}
                           {/* Join Action Chip */}
-                          {!list.is_locked && !list.is_full && volunteerName.trim() && (
-                            <button
-                              onClick={() => handleAddSignup(list.id)}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.75rem 1.25rem',
-                                minHeight: '44px',
-                                backgroundColor: '#2563eb',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '1.5rem',
-                                fontSize: '0.9375rem',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.12)',
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = '#1d4ed8';
-                                e.currentTarget.style.transform = 'translateY(-1px)';
-                                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.15)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = '#2563eb';
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.12)';
-                              }}
-                            >
-                              <span
-                                style={{ fontSize: '1.125rem', lineHeight: '1', fontWeight: '400' }}
+                          {!list.is_locked &&
+                            !list.is_full &&
+                            volunteerName.trim() &&
+                            !list.signups.some((s) => s.name === volunteerName) && (
+                              <button
+                                onClick={() => handleAddSignup(list.id)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                  padding: '0.75rem 1.25rem',
+                                  minHeight: '44px',
+                                  backgroundColor: '#2563eb',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  borderRadius: '1.5rem',
+                                  fontSize: '0.9375rem',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.12)',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#1d4ed8';
+                                  e.currentTarget.style.transform = 'translateY(-1px)';
+                                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.15)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#2563eb';
+                                  e.currentTarget.style.transform = 'translateY(0)';
+                                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.12)';
+                                }}
                               >
-                                +
-                              </span>
-                              Join as {volunteerName.split(' ')[0]}
-                            </button>
-                          )}
+                                <span
+                                  style={{
+                                    fontSize: '1.125rem',
+                                    lineHeight: '1',
+                                    fontWeight: '400',
+                                  }}
+                                >
+                                  +
+                                </span>
+                                Join as {volunteerName.split(' ')[0]}
+                              </button>
+                            )}
 
                           {/* Placeholder for no name entered */}
                           {!list.is_locked && !list.is_full && !volunteerName.trim() && (
@@ -999,62 +1041,87 @@ export default function VolunteerSignupPage() {
                           )}
 
                           {/* Existing Signups as Chips */}
-                          {list.signups.map((signup) => (
-                            <div
-                              key={signup.id}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.75rem 1rem',
-                                minHeight: '44px',
-                                backgroundColor: '#e5e7eb',
-                                color: '#111827',
-                                borderRadius: '1.5rem',
-                                fontSize: '0.9375rem',
-                                fontWeight: '500',
-                                border: '2px solid #d1d5db',
-                              }}
-                            >
-                              <span>{signup.name}</span>
-                              {!list.is_locked && (
-                                <button
-                                  onClick={() => handleRemoveClick(signup.id, signup.name)}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '28px',
-                                    height: '28px',
-                                    minWidth: '28px',
-                                    minHeight: '28px',
-                                    padding: 0,
-                                    margin: '-4px -4px -4px 0',
-                                    backgroundColor: 'transparent',
-                                    color: '#374151',
-                                    border: 'none',
-                                    borderRadius: '50%',
-                                    cursor: 'pointer',
-                                    fontSize: '1.25rem',
-                                    lineHeight: '1',
-                                    transition: 'all 0.15s',
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#d1d5db';
-                                    e.currentTarget.style.color = '#dc2626';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                    e.currentTarget.style.color = '#374151';
-                                  }}
-                                  title="Remove"
-                                  aria-label={`Remove ${signup.name}`}
+                          {list.signups.map((signup) => {
+                            const isCurrentUser = volunteerName && signup.name === volunteerName;
+                            return (
+                              <div
+                                key={signup.id}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                  padding: '0.75rem 1rem',
+                                  minHeight: '44px',
+                                  backgroundColor: isCurrentUser ? '#dbeafe' : '#e5e7eb',
+                                  color: '#111827',
+                                  borderRadius: '1.5rem',
+                                  fontSize: '0.9375rem',
+                                  fontWeight: '500',
+                                  border: isCurrentUser ? '2px solid #2563eb' : '2px solid #d1d5db',
+                                }}
+                              >
+                                <span
+                                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                                 >
-                                  ×
-                                </button>
-                              )}
-                            </div>
-                          ))}
+                                  {signup.name}
+                                  {isCurrentUser && (
+                                    <span
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        padding: '2px 6px',
+                                        backgroundColor: '#2563eb',
+                                        color: '#ffffff',
+                                        borderRadius: '4px',
+                                        fontSize: '0.6875rem',
+                                        fontWeight: '600',
+                                        letterSpacing: '0.02em',
+                                        textTransform: 'uppercase',
+                                      }}
+                                    >
+                                      You
+                                    </span>
+                                  )}
+                                </span>
+                                {!list.is_locked && (
+                                  <button
+                                    onClick={() => handleRemoveClick(signup.id, signup.name)}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: '28px',
+                                      height: '28px',
+                                      minWidth: '28px',
+                                      minHeight: '28px',
+                                      padding: 0,
+                                      margin: '-4px -4px -4px 0',
+                                      backgroundColor: 'transparent',
+                                      color: '#374151',
+                                      border: 'none',
+                                      borderRadius: '50%',
+                                      cursor: 'pointer',
+                                      fontSize: '1.25rem',
+                                      lineHeight: '1',
+                                      transition: 'all 0.15s',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#d1d5db';
+                                      e.currentTarget.style.color = '#dc2626';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = 'transparent';
+                                      e.currentTarget.style.color = '#374151';
+                                    }}
+                                    title="Remove"
+                                    aria-label={`Remove ${signup.name}`}
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 

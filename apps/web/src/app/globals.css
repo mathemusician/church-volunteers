@@ -34,6 +34,8 @@
   /* Type Scale */
   --md-sys-typescale-title-large-size: 22px;
   --md-sys-typescale-title-large-weight: 600;
+  --md-sys-typescale-body-medium-size: 14px;
+  --md-sys-typescale-body-medium-line-height: 20px;
   --md-sys-typescale-label-large-size: 14px;
   --md-sys-typescale-label-large-weight: 600;
   --md-sys-typescale-label-small-size: 11px;
@@ -83,6 +85,14 @@ body {
 }
 
 /* Role Header */
+.role-header {
+  cursor: pointer !important;
+}
+
+.role-header:hover {
+  background-color: var(--md-sys-color-surface-container-low) !important;
+}
+
 .role-header.expanded {
   background-color: var(--md-sys-color-surface-container-low) !important;
 }
@@ -170,4 +180,34 @@ body {
 
 .date-sidebar button svg {
   color: var(--md-sys-color-primary) !important;
+}
+
+/* Animations for loading and success states */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }

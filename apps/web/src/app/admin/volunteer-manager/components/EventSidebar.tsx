@@ -244,23 +244,18 @@ export function EventSidebar({
             <div key={template.id}>
               {/* Template */}
               <div className="flex items-center gap-1">
-                {instances.length > 0 && (
-                  <button
-                    onClick={() => toggleTemplate(template.id)}
-                    className="p-1 hover:bg-gray-100 rounded z-10"
-                  >
-                    <span className="text-xs">{isExpanded ? '▼' : '▶'}</span>
-                  </button>
-                )}
                 <button
-                  onClick={() => onSelectEvent(template)}
+                  onClick={() => {
+                    toggleTemplate(template.id);
+                    onSelectEvent(template);
+                  }}
                   draggable
                   onDragStart={() => handleTemplateDragStart(index)}
                   onDragEnter={(e) => handleTemplateDragEnter(e, index)}
                   onDragOver={handleTemplateDragOver}
                   onDrop={(e) => handleTemplateDrop(e, index, templates)}
                   onDragEnd={handleTemplateDragEnd}
-                  className={`flex-1 text-left px-3 py-2 rounded-md text-sm transition-all cursor-move ${
+                  className={`flex-1 text-left px-3 py-2 rounded-md text-sm transition-all cursor-pointer ${
                     selectedEvent?.id === template.id
                       ? 'bg-blue-100 text-blue-700 font-medium'
                       : 'hover:bg-gray-100 text-gray-900'
@@ -268,6 +263,9 @@ export function EventSidebar({
                 >
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-1">
+                      {instances.length > 0 && (
+                        <span className="text-xs">{isExpanded ? '▼' : '▶'}</span>
+                      )}
                       <span>📋</span>
                       <span className="font-medium">{template.title}</span>
                       {instances.length > 0 && (
