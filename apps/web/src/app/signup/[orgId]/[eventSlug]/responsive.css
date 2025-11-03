@@ -1,0 +1,20 @@
+/* Responsive date navigation */
+/* Desktop: Show sidebar, hide dropdown */
+@media (min-width: 768px) {
+  .date-sidebar {
+    display: flex !important;
+  }
+  .date-dropdown-button {
+    display: none !important;
+  }
+}
+
+/* Mobile: Hide sidebar, show dropdown */
+@media (max-width: 767px) {
+  .date-sidebar {
+    display: none !important;
+  }
+  .date-dropdown-button {
+    display: flex !important;
+  }
+}

@@ -1,0 +1,299 @@
+/* Material Design 3-Inspired Design System */
+
+:root {
+  /* === Color Tokens === */
+  /* Primary - Main brand/accent color for CTAs */
+  --md-sys-color-primary: #2563eb;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #dbeafe;
+  --md-sys-color-on-primary-container: #1e3a8a;
+  
+  /* Surface hierarchy */
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-surface-variant: #f8fafc;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f9fafb;
+  --md-sys-color-surface-container: #f3f4f6;
+  --md-sys-color-surface-container-high: #e5e7eb;
+  --md-sys-color-surface-container-highest: #d1d5db;
+  
+  /* On-surface text */
+  --md-sys-color-on-surface: #111827;
+  --md-sys-color-on-surface-variant: #6b7280;
+  
+  /* Outline borders */
+  --md-sys-color-outline: #d1d5db;
+  --md-sys-color-outline-variant: #e5e7eb;
+  
+  /* Error states */
+  --md-sys-color-error: #dc2626;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #fee2e2;
+  
+  /* Success/Positive */
+  --md-sys-color-success: #10b981;
+  --md-sys-color-on-success: #ffffff;
+  
+  /* Warning */
+  --md-sys-color-warning: #f59e0b;
+  --md-sys-color-warning-container: #fef3c7;
+  --md-sys-color-on-warning-container: #92400e;
+  
+  /* === Shape Tokens (M3 rounded corners) === */
+  --md-sys-shape-corner-none: 0px;
+  --md-sys-shape-corner-extra-small: 4px;
+  --md-sys-shape-corner-small: 8px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-extra-large: 28px;
+  --md-sys-shape-corner-full: 9999px;
+  
+  /* === Elevation (shadows) === */
+  --md-sys-elevation-level0: none;
+  --md-sys-elevation-level1: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --md-sys-elevation-level2: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --md-sys-elevation-level3: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --md-sys-elevation-level4: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --md-sys-elevation-level5: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  
+  /* === Type Scale (8pt base) === */
+  /* Display - Large headings */
+  --md-sys-typescale-display-large-size: 57px;
+  --md-sys-typescale-display-large-line-height: 64px;
+  --md-sys-typescale-display-large-weight: 400;
+  
+  /* Headline - Section headers */
+  --md-sys-typescale-headline-large-size: 32px;
+  --md-sys-typescale-headline-large-line-height: 40px;
+  --md-sys-typescale-headline-large-weight: 600;
+  
+  --md-sys-typescale-headline-medium-size: 28px;
+  --md-sys-typescale-headline-medium-line-height: 36px;
+  --md-sys-typescale-headline-medium-weight: 600;
+  
+  --md-sys-typescale-headline-small-size: 24px;
+  --md-sys-typescale-headline-small-line-height: 32px;
+  --md-sys-typescale-headline-small-weight: 600;
+  
+  /* Title - Card titles, list items */
+  --md-sys-typescale-title-large-size: 22px;
+  --md-sys-typescale-title-large-line-height: 28px;
+  --md-sys-typescale-title-large-weight: 600;
+  
+  --md-sys-typescale-title-medium-size: 16px;
+  --md-sys-typescale-title-medium-line-height: 24px;
+  --md-sys-typescale-title-medium-weight: 600;
+  
+  --md-sys-typescale-title-small-size: 14px;
+  --md-sys-typescale-title-small-line-height: 20px;
+  --md-sys-typescale-title-small-weight: 600;
+  
+  /* Label - Buttons, chips */
+  --md-sys-typescale-label-large-size: 14px;
+  --md-sys-typescale-label-large-line-height: 20px;
+  --md-sys-typescale-label-large-weight: 600;
+  
+  --md-sys-typescale-label-medium-size: 12px;
+  --md-sys-typescale-label-medium-line-height: 16px;
+  --md-sys-typescale-label-medium-weight: 600;
+  
+  --md-sys-typescale-label-small-size: 11px;
+  --md-sys-typescale-label-small-line-height: 16px;
+  --md-sys-typescale-label-small-weight: 600;
+  
+  /* Body - Paragraphs, descriptions */
+  --md-sys-typescale-body-large-size: 16px;
+  --md-sys-typescale-body-large-line-height: 24px;
+  --md-sys-typescale-body-large-weight: 400;
+  
+  --md-sys-typescale-body-medium-size: 14px;
+  --md-sys-typescale-body-medium-line-height: 20px;
+  --md-sys-typescale-body-medium-weight: 400;
+  
+  --md-sys-typescale-body-small-size: 12px;
+  --md-sys-typescale-body-small-line-height: 16px;
+  --md-sys-typescale-body-small-weight: 400;
+  
+  /* === Spacing Scale (8pt grid) === */
+  --md-sys-spacing-0: 0px;
+  --md-sys-spacing-1: 4px;    /* 0.5 unit */
+  --md-sys-spacing-2: 8px;    /* 1 unit */
+  --md-sys-spacing-3: 12px;   /* 1.5 units */
+  --md-sys-spacing-4: 16px;   /* 2 units */
+  --md-sys-spacing-5: 20px;   /* 2.5 units */
+  --md-sys-spacing-6: 24px;   /* 3 units */
+  --md-sys-spacing-8: 32px;   /* 4 units */
+  --md-sys-spacing-10: 40px;  /* 5 units */
+  --md-sys-spacing-12: 48px;  /* 6 units */
+  --md-sys-spacing-16: 64px;  /* 8 units */
+  --md-sys-spacing-20: 80px;  /* 10 units */
+  --md-sys-spacing-24: 96px;  /* 12 units */
+  
+  /* === State Layers (for hover, pressed) === */
+  --md-sys-state-hover-opacity: 0.08;
+  --md-sys-state-focus-opacity: 0.12;
+  --md-sys-state-pressed-opacity: 0.12;
+  --md-sys-state-dragged-opacity: 0.16;
+}
+
+/* Dark mode support (basic) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --md-sys-color-primary: #3b82f6;
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #1e3a8a;
+    --md-sys-color-on-primary-container: #dbeafe;
+    
+    --md-sys-color-surface: #111827;
+    --md-sys-color-surface-variant: #1f2937;
+    --md-sys-color-surface-container-lowest: #0f1419;
+    --md-sys-color-surface-container-low: #1f2937;
+    --md-sys-color-surface-container: #374151;
+    --md-sys-color-surface-container-high: #4b5563;
+    --md-sys-color-surface-container-highest: #6b7280;
+    
+    --md-sys-color-on-surface: #f9fafb;
+    --md-sys-color-on-surface-variant: #9ca3af;
+    
+    --md-sys-color-outline: #4b5563;
+    --md-sys-color-outline-variant: #374151;
+    
+    --md-sys-color-error: #ef4444;
+    --md-sys-color-error-container: #7f1d1d;
+  }
+}
+
+/* === M3 Component Classes === */
+
+/* Cards */
+.md-card {
+  background-color: var(--md-sys-color-surface);
+  border-radius: var(--md-sys-shape-corner-large);
+  box-shadow: var(--md-sys-elevation-level1);
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.md-card-elevated {
+  background-color: var(--md-sys-color-surface);
+  border-radius: var(--md-sys-shape-corner-large);
+  box-shadow: var(--md-sys-elevation-level2);
+  border: none;
+}
+
+/* Surface containers */
+.md-surface-container {
+  background-color: var(--md-sys-color-surface-container);
+  border-radius: var(--md-sys-shape-corner-medium);
+}
+
+.md-surface-container-low {
+  background-color: var(--md-sys-color-surface-container-low);
+  border-radius: var(--md-sys-shape-corner-medium);
+}
+
+/* Buttons */
+.md-button-filled {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  padding: var(--md-sys-spacing-3) var(--md-sys-spacing-6);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  line-height: var(--md-sys-typescale-label-large-line-height);
+  box-shadow: var(--md-sys-elevation-level1);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  min-height: 40px;
+}
+
+.md-button-filled:hover {
+  box-shadow: var(--md-sys-elevation-level2);
+  transform: translateY(-1px);
+}
+
+.md-button-filled:active {
+  transform: translateY(0);
+}
+
+/* Chips */
+.md-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-sys-spacing-2);
+  padding: var(--md-sys-spacing-2) var(--md-sys-spacing-3);
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-corner-small);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-weight: var(--md-sys-typescale-label-medium-weight);
+  line-height: var(--md-sys-typescale-label-medium-line-height);
+}
+
+.md-chip-assist {
+  background-color: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline);
+}
+
+/* === Utility Classes === */
+
+/* Typography */
+.md-headline-small {
+  font-size: var(--md-sys-typescale-headline-small-size);
+  line-height: var(--md-sys-typescale-headline-small-line-height);
+  font-weight: var(--md-sys-typescale-headline-small-weight);
+  color: var(--md-sys-color-on-surface);
+}
+
+.md-title-large {
+  font-size: var(--md-sys-typescale-title-large-size);
+  line-height: var(--md-sys-typescale-title-large-line-height);
+  font-weight: var(--md-sys-typescale-title-large-weight);
+  color: var(--md-sys-color-on-surface);
+}
+
+.md-title-medium {
+  font-size: var(--md-sys-typescale-title-medium-size);
+  line-height: var(--md-sys-typescale-title-medium-line-height);
+  font-weight: var(--md-sys-typescale-title-medium-weight);
+  color: var(--md-sys-color-on-surface);
+}
+
+.md-body-medium {
+  font-size: var(--md-sys-typescale-body-medium-size);
+  line-height: var(--md-sys-typescale-body-medium-line-height);
+  font-weight: var(--md-sys-typescale-body-medium-weight);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-label-large {
+  font-size: var(--md-sys-typescale-label-large-size);
+  line-height: var(--md-sys-typescale-label-large-line-height);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+}
+
+/* Spacing utilities */
+.md-padding-2 { padding: var(--md-sys-spacing-2); }
+.md-padding-3 { padding: var(--md-sys-spacing-3); }
+.md-padding-4 { padding: var(--md-sys-spacing-4); }
+.md-padding-6 { padding: var(--md-sys-spacing-6); }
+.md-padding-8 { padding: var(--md-sys-spacing-8); }
+
+.md-gap-2 { gap: var(--md-sys-spacing-2); }
+.md-gap-3 { gap: var(--md-sys-spacing-3); }
+.md-gap-4 { gap: var(--md-sys-spacing-4); }
+.md-gap-6 { gap: var(--md-sys-spacing-6); }
+
+/* Modern glassmorphism for sticky elements */
+.md-glass {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .md-glass {
+    background: rgba(17, 24, 39, 0.95);
+  }
+}

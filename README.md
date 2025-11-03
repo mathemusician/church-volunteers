@@ -43,7 +43,7 @@ church-volunteers/
 
 - Node.js 18+
 - npm (comes with Node.js)
-- Docker Desktop
+- Docker Desktop (optional, for local database)
 - Git
 
 ### Installation
@@ -53,20 +53,20 @@ church-volunteers/
 git clone <repository-url>
 cd church-volunteers
 
-# 2. Install dependencies
+# 2. Install dependencies (use npm, not pnpm)
 npm install
 
 # 3. Copy environment variables
 cp .env.example .env.local
 
-# 4. Start Docker services
-docker-compose up -d
-
-# 5. Start development server
+# 4. Start development server
+cd apps/web
 npm run dev
 ```
 
 Visit http://localhost:3000 to see your application! 🎉
+
+**⚠️ Important:** This project uses **npm** for local development to match Vercel's deployment environment. While `package.json` contains `"packageManager": "pnpm@8.6.0"`, Vercel actually uses npm for building. The two package managers resolve Tailwind v4 dependencies differently, and npm's resolution is compatible while pnpm's causes build errors. Always use npm for local development.
 
 For detailed setup instructions, see [GETTING_STARTED.md](GETTING_STARTED.md).
 
@@ -110,20 +110,25 @@ docker-compose down
 
 ```bash
 # Start development server
+cd apps/web
 npm run dev
 
 # Run linter
 npm run lint
 
-# Format code
+# Format code (from root)
+cd ../..
 npm run format
 
 # Build for production
+cd apps/web
 npm run build
 
 # Start production server
 npm run start
 ```
+
+**Note:** Commands run from the `apps/web` directory for the web application.
 
 ## 🔐 Security Features
 
@@ -216,6 +221,25 @@ Run the verification script to check your installation:
 ```bash
 ./scripts/verify-setup.sh
 ```
+
+## 🐛 Troubleshooting
+
+### Tailwind CSS Build Errors
+
+If you encounter errors like `Missing field 'negated' on ScannerOptions.sources`:
+
+1. **Use npm instead of pnpm**: This project has Tailwind v4 dependencies that resolve differently between package managers
+2. **Remove existing installations**:
+   ```bash
+   rm -rf node_modules apps/web/node_modules pnpm-lock.yaml
+   npm install
+   ```
+3. **Vercel uses npm**: Local development should match Vercel's environment
+
+### Development Server Issues
+
+- **Port 3000 already in use**: Kill existing processes with `lsof -ti:3000 | xargs kill`
+- **Auth errors on first run**: Clear browser cookies or use incognito mode
 
 ## 📄 License
 

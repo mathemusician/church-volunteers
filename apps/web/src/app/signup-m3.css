@@ -1,0 +1,84 @@
+/* Material 3 Styles for Signup Page - Using CSS classes instead of inline styles */
+
+/* TEST: Make page background bright red to confirm CSS loads */
+body {
+  background: red !important;
+}
+
+/* Sticky Header with glassmorphism */
+#sticky-header {
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant) !important;
+  box-shadow: var(--md-sys-elevation-level2) !important;
+}
+
+/* Role Cards */
+.role-card {
+  background-color: var(--md-sys-color-surface) !important;
+  border: 1px solid var(--md-sys-color-outline-variant) !important;
+  border-radius: var(--md-sys-shape-corner-large) !important;
+  box-shadow: var(--md-sys-elevation-level1) !important;
+}
+
+.role-card:hover {
+  box-shadow: var(--md-sys-elevation-level2) !important;
+}
+
+/* Role Header */
+.role-header {
+  padding: var(--md-sys-spacing-4) var(--md-sys-spacing-5) !important;
+}
+
+.role-header.expanded {
+  background-color: var(--md-sys-color-surface-container-low) !important;
+}
+
+/* Role Title */
+.role-title {
+  font-size: var(--md-sys-typescale-title-large-size) !important;
+  line-height: var(--md-sys-typescale-title-large-line-height) !important;
+  font-weight: var(--md-sys-typescale-title-large-weight) !important;
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+/* Status Chips */
+.status-chip {
+  font-size: var(--md-sys-typescale-label-small-size) !important;
+  padding: var(--md-sys-spacing-1) var(--md-sys-spacing-3) !important;
+  border-radius: var(--md-sys-shape-corner-small) !important;
+  font-weight: var(--md-sys-typescale-label-small-weight) !important;
+}
+
+.status-chip.locked {
+  background-color: var(--md-sys-color-error-container) !important;
+  color: var(--md-sys-color-error) !important;
+}
+
+.status-chip.full {
+  background-color: var(--md-sys-color-warning-container) !important;
+  color: var(--md-sys-color-on-warning-container) !important;
+}
+
+/* CTA Buttons */
+.cta-button {
+  padding: var(--md-sys-spacing-3) var(--md-sys-spacing-6) !important;
+  background-color: var(--md-sys-color-primary) !important;
+  color: var(--md-sys-color-on-primary) !important;
+  border-radius: var(--md-sys-shape-corner-full) !important;
+  box-shadow: var(--md-sys-elevation-level2) !important;
+  font-size: var(--md-sys-typescale-label-large-size) !important;
+  font-weight: var(--md-sys-typescale-label-large-weight) !important;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+.cta-button:hover {
+  box-shadow: var(--md-sys-elevation-level3) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Page background */
+body {
+  background-color: var(--md-sys-color-surface-variant) !important;
+}
