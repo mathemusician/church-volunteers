@@ -172,19 +172,6 @@ export default function VolunteerSignupPage() {
     );
   }
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return '';
-    // Parse as local date to avoid timezone shifts
-    const [year, month, day] = dateString.split('T')[0].split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
   // Filter to only show events from the same template (sibling events)
   const siblingEvents =
     event && event.template_id
@@ -243,17 +230,6 @@ export default function VolunteerSignupPage() {
             >
               {event.title}
             </h2>
-            {event.event_date && (
-              <span
-                style={{
-                  fontSize: 'var(--md-sys-typescale-body-medium-size)',
-                  color: 'var(--md-sys-color-on-surface-variant)',
-                  fontWeight: '500',
-                }}
-              >
-                {formatDate(event.event_date)}
-              </span>
-            )}
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
