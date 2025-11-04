@@ -35,11 +35,23 @@ async function seedPickleball() {
   try {
     console.log('🏓 Seeding Pickleball Availability Sheet...\n');
 
-    // Step 1: Run migrations
-    console.log('Step 1: Running migrations...');
-    await runMigration('005_add_availability_sheets.sql');
-    await runMigration('006_add_week_instances.sql');
-    console.log('✓ Migrations complete\n');
+    // Step 1: Check if tables exist, only run migrations if needed
+    console.log('Step 1: Checking database schema...');
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'availability_sheets'
+      );
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      console.log('Tables not found. Running migrations...');
+      await runMigration('005_add_availability_sheets.sql');
+      await runMigration('006_add_week_instances.sql');
+      console.log('✓ Migrations complete\n');
+    } else {
+      console.log('✓ Tables already exist, skipping migrations\n');
+    }
 
     // Step 2: Check for existing organization
     const orgResult = await pool.query('SELECT id FROM organizations LIMIT 1');
