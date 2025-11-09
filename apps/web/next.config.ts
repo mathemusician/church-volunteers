@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
-      allowedOrigins: ['localhost:3000', '127.0.0.1:*'],
+      allowedOrigins: ['localhost:3000', 'localhost:*', '127.0.0.1:*', 'localhost'],
     },
   },
   // Skip API routes during static generation

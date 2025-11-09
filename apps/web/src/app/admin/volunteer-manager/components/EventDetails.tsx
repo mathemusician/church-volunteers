@@ -9,13 +9,32 @@ interface EventDetailsProps {
   onGenerateSundays?: (event: Event) => void;
 }
 
+/**
+ * Get day of week from an event's begin_date, handling timezone correctly
+ */
 const getDayOfWeek = (event: Event): string => {
-  if (event.begin_date) {
-    const date = new Date(event.begin_date);
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[date.getDay()] + 's';
+  if (!event.begin_date) {
+    return 'events';
   }
-  return 'events';
+
+  // Parse date in local timezone to prevent day shifting
+  const dateStr = event.begin_date;
+
+  // Extract YYYY-MM-DD if present, otherwise use the full date
+  const match = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+  let date: Date;
+
+  if (match) {
+    // Parse as local date to avoid timezone shifts
+    const [, year, month, day] = match;
+    date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  } else {
+    // Fallback to normal parsing
+    date = new Date(dateStr);
+  }
+
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[date.getDay()] + 's';
 };
 
 export function EventDetails({

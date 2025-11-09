@@ -59,17 +59,35 @@ export function EventSidebar({
   };
 
   const getDayOfWeek = (template: Event, instances: Event[]): string => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
     // Try to get day from first instance
     if (instances.length > 0 && instances[0].event_date) {
-      const date = new Date(instances[0].event_date);
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dateStr = instances[0].event_date;
+      const match = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+
+      if (match) {
+        const [, year, month, day] = match;
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        return days[date.getDay()] + 's';
+      }
+
+      const date = new Date(dateStr);
       return days[date.getDay()] + 's';
     }
 
     // Fallback to begin_date from template
     if (template.begin_date) {
-      const date = new Date(template.begin_date);
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dateStr = template.begin_date;
+      const match = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+
+      if (match) {
+        const [, year, month, day] = match;
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        return days[date.getDay()] + 's';
+      }
+
+      const date = new Date(dateStr);
       return days[date.getDay()] + 's';
     }
 
