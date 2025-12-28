@@ -187,6 +187,18 @@ export default async function DashboardPage() {
               </span>
             </Link>
 
+            {/* SMS Notifications */}
+            <Link
+              href="/dashboard/sms"
+              className="block rounded-lg bg-white p-6 shadow hover:shadow-md transition-all cursor-pointer hover:border-blue-200 border border-transparent"
+            >
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">📱 SMS Notifications</h3>
+              <p className="text-sm text-gray-600 mb-4">View sent messages and delivery status</p>
+              <span className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700">
+                View SMS log →
+              </span>
+            </Link>
+
             {/* Account Settings */}
             <Link
               href="/dashboard/settings"

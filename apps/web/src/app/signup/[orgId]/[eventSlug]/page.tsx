@@ -44,6 +44,8 @@ export default function VolunteerSignupPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [volunteerName, setVolunteerName] = useState<string>('');
+  const [volunteerPhone, setVolunteerPhone] = useState<string>('');
+  const [smsConsent, setSmsConsent] = useState<boolean>(false);
   const [addingToList, setAddingToList] = useState<{ [key: number]: boolean }>({});
   const [confirmRemove, setConfirmRemove] = useState<{ signupId: number; name: string } | null>(
     null
@@ -56,10 +58,18 @@ export default function VolunteerSignupPage() {
   const [expandedSections, setExpandedSections] = useState<{ [key: number]: boolean }>({});
 
   useEffect(() => {
-    // Load volunteer name from localStorage
+    // Load volunteer name and phone from localStorage
     const savedName = localStorage.getItem('volunteerName');
     if (savedName) {
       setVolunteerName(savedName);
+    }
+    const savedPhone = localStorage.getItem('volunteerPhone');
+    if (savedPhone) {
+      setVolunteerPhone(savedPhone);
+    }
+    const savedConsent = localStorage.getItem('smsConsent');
+    if (savedConsent === 'true') {
+      setSmsConsent(true);
     }
   }, []);
 
@@ -71,6 +81,16 @@ export default function VolunteerSignupPage() {
   const handleVolunteerNameChange = (name: string) => {
     setVolunteerName(name);
     localStorage.setItem('volunteerName', name);
+  };
+
+  const handleVolunteerPhoneChange = (phone: string) => {
+    setVolunteerPhone(phone);
+    localStorage.setItem('volunteerPhone', phone);
+  };
+
+  const handleSmsConsentChange = (consent: boolean) => {
+    setSmsConsent(consent);
+    localStorage.setItem('smsConsent', consent ? 'true' : 'false');
   };
 
   const fetchAllEvents = async () => {
@@ -111,7 +131,7 @@ export default function VolunteerSignupPage() {
       const response = await fetch('/api/signup/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listId, name }),
+        body: JSON.stringify({ listId, name, phone: volunteerPhone || null, smsConsent }),
       });
 
       if (!response.ok) {
@@ -488,6 +508,88 @@ export default function VolunteerSignupPage() {
             >
               Clear
             </button>
+          )}
+        </div>
+
+        {/* Phone Number Row */}
+        <div
+          style={{
+            padding: '0.5rem 1rem 0.75rem 1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            maxWidth: '680px',
+            margin: '0 auto',
+          }}
+        >
+          <label
+            htmlFor="volunteer-phone"
+            style={{
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              color: '#374151',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Phone (for SMS)
+          </label>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <input
+              id="volunteer-phone"
+              type="tel"
+              placeholder="555-123-4567"
+              value={volunteerPhone}
+              onChange={(e) => handleVolunteerPhoneChange(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                minHeight: '40px',
+                fontSize: '1rem',
+                color: '#111827',
+                border: `2px solid ${volunteerPhone && !/^\d{10}$|^1?\d{10}$/.test(volunteerPhone.replace(/\D/g, '')) ? '#ef4444' : '#d1d5db'}`,
+                borderRadius: '0.5rem',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = '#2563eb';
+              }}
+              onBlur={(e) => {
+                const digits = volunteerPhone.replace(/\D/g, '');
+                const isValid = !volunteerPhone || /^\d{10}$|^1\d{10}$/.test(digits);
+                e.currentTarget.style.borderColor = isValid ? '#d1d5db' : '#ef4444';
+              }}
+            />
+            {volunteerPhone && !/^\d{10}$|^1?\d{10}$/.test(volunteerPhone.replace(/\D/g, '')) && (
+              <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>
+                Enter a valid 10-digit phone number
+              </span>
+            )}
+          </div>
+          {volunteerPhone && /^\d{10}$|^1?\d{10}$/.test(volunteerPhone.replace(/\D/g, '')) && (
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={smsConsent}
+                onChange={(e) => handleSmsConsentChange(e.target.checked)}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer',
+                }}
+              />
+              <span style={{ fontSize: '0.75rem', color: '#374151' }}>
+                Send me text confirmations
+              </span>
+            </label>
           )}
         </div>
       </div>
