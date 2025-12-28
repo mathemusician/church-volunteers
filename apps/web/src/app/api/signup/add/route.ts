@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { formatPhoneNumber, sendSMS, isOptedOut } from '@/lib/sms';
 
 // POST - Add a person to a volunteer list
 export async function POST(request: NextRequest) {
   try {
-    const { listId, name } = await request.json();
+    const { listId, name, phone, smsConsent } = await request.json();
 
     if (!listId || !name || !name.trim()) {
       return NextResponse.json({ error: 'List ID and name are required' }, { status: 400 });
@@ -44,11 +45,62 @@ export async function POST(request: NextRequest) {
     );
     const nextPosition = positionResult.rows[0].next_position;
 
-    // Insert signup
+    // Format phone number if provided
+    const formattedPhone = phone ? formatPhoneNumber(phone) : null;
+
+    // Insert signup with phone and consent
     const result = await query(
-      'INSERT INTO volunteer_signups (list_id, name, position) VALUES ($1, $2, $3) RETURNING *',
-      [listId, name.trim(), nextPosition]
+      `INSERT INTO volunteer_signups (list_id, name, position, phone, sms_consent, sms_consented_at) 
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [
+        listId,
+        name.trim(),
+        nextPosition,
+        formattedPhone,
+        smsConsent ? true : false,
+        smsConsent ? new Date() : null,
+      ]
     );
+
+    const signupId = result.rows[0].id;
+
+    // Send SMS confirmation if phone provided and consent given
+    if (formattedPhone && smsConsent) {
+      // Check if opted out
+      const optedOut = await isOptedOut(formattedPhone);
+      if (!optedOut) {
+        // Get event details for the message
+        const eventResult = await query(
+          `SELECT ve.id as event_id, ve.title, ve.event_date, vl.title as list_title
+           FROM volunteer_lists vl
+           JOIN volunteer_events ve ON vl.event_id = ve.id
+           WHERE vl.id = $1`,
+          [listId]
+        );
+
+        const event = eventResult.rows[0];
+        if (event) {
+          const dateStr = new Date(event.event_date).toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+          });
+
+          const message = `You're confirmed for ${event.title} - ${event.list_title} on ${dateStr}. Reply STOP to opt out.`;
+
+          // Send SMS (don't await - fire and forget)
+          sendSMS({
+            to: formattedPhone,
+            message,
+            signupId,
+            eventId: event.event_id,
+            messageType: 'confirmation',
+          }).catch((err) => {
+            console.error('SMS send failed:', err);
+          });
+        }
+      }
+    }
 
     return NextResponse.json(result.rows[0], { status: 201 });
   } catch (error) {
