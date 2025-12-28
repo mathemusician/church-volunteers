@@ -21,78 +21,71 @@ export async function GET(request: NextRequest) {
     );
 
     const generatedEvents = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+
+    // Use UTC date to avoid timezone issues
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
 
     // Target: always maintain exactly 5 future events per template
     const TARGET_FUTURE_EVENTS = 5;
 
     for (const template of templatesResult.rows) {
-      // Determine which day of week this template is for
+      // Determine which day of week this template is for (0=Sunday, 6=Saturday)
       let targetDayOfWeek = 0; // Sunday by default
       if (template.begin_date) {
-        const beginDate = new Date(template.begin_date);
-        targetDayOfWeek = beginDate.getDay();
+        const beginDate = new Date(template.begin_date + 'T00:00:00Z');
+        targetDayOfWeek = beginDate.getUTCDay();
       }
 
-      // Count existing future events for this template
-      const futureEventsResult = await query(
-        `SELECT COUNT(*) as count FROM volunteer_events 
+      // Get all existing future event dates for this template
+      const existingEventsResult = await query(
+        `SELECT event_date FROM volunteer_events 
          WHERE template_id = $1 
          AND event_date >= $2
-         AND is_template = false`,
+         AND is_template = false
+         ORDER BY event_date ASC`,
         [template.id, todayStr]
       );
 
-      const currentFutureCount = parseInt(futureEventsResult.rows[0].count, 10);
-      const eventsToCreate = TARGET_FUTURE_EVENTS - currentFutureCount;
-
-      if (eventsToCreate <= 0) {
-        continue; // Already have enough future events
-      }
-
-      // Find the latest event date for this template
-      const latestEventResult = await query(
-        `SELECT MAX(event_date) as latest FROM volunteer_events 
-         WHERE template_id = $1 
-         AND is_template = false`,
-        [template.id]
+      const existingDates = new Set(
+        existingEventsResult.rows.map((r: { event_date: string | Date }) => {
+          const d = new Date(r.event_date);
+          return d.toISOString().split('T')[0];
+        })
       );
 
-      let nextDate: Date;
-      if (latestEventResult.rows[0].latest) {
-        // Start from the week after the latest event
-        nextDate = new Date(latestEventResult.rows[0].latest);
-        nextDate.setDate(nextDate.getDate() + 7);
-      } else {
-        // No events yet, find the next occurrence of target day
-        nextDate = new Date(today);
-        const daysUntilTarget = (targetDayOfWeek - today.getDay() + 7) % 7;
-        nextDate.setDate(today.getDate() + (daysUntilTarget === 0 ? 7 : daysUntilTarget));
+      // Find the first occurrence of target day >= today
+      const today = new Date(todayStr + 'T00:00:00Z');
+      const todayDayOfWeek = today.getUTCDay();
+      const daysUntilTarget = (targetDayOfWeek - todayDayOfWeek + 7) % 7;
+      // If today is the target day, include today
+      const firstTargetDate = new Date(today);
+      firstTargetDate.setUTCDate(today.getUTCDate() + daysUntilTarget);
+
+      // Generate the 5 expected dates
+      const expectedDates: string[] = [];
+      const checkDate = new Date(firstTargetDate);
+      for (let i = 0; i < TARGET_FUTURE_EVENTS; i++) {
+        expectedDates.push(checkDate.toISOString().split('T')[0]);
+        checkDate.setUTCDate(checkDate.getUTCDate() + 7);
       }
 
-      // Create the needed events
-      for (let i = 0; i < eventsToCreate; i++) {
-        const targetDateStr = nextDate.toISOString().split('T')[0];
+      // Find missing dates (expected but not existing)
+      const missingDates = expectedDates.filter((d) => !existingDates.has(d));
 
-        // Double-check event doesn't already exist
-        const existingCheck = await query(
-          `SELECT id FROM volunteer_events 
-           WHERE template_id = $1 
-           AND event_date = $2`,
-          [template.id, targetDateStr]
-        );
+      if (missingDates.length === 0) {
+        continue; // All 5 future events exist
+      }
 
-        if (existingCheck.rows.length > 0) {
-          nextDate.setDate(nextDate.getDate() + 7);
-          continue;
-        }
+      // Create events for missing dates
+      for (const targetDateStr of missingDates) {
+        const eventDate = new Date(targetDateStr + 'T00:00:00Z');
 
         // Generate title with date
-        const formattedDate = nextDate.toLocaleDateString('en-US', {
+        const formattedDate = eventDate.toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
+          timeZone: 'UTC',
         });
         const newTitle = `${template.title} - ${formattedDate}`;
 
@@ -163,9 +156,6 @@ export async function GET(request: NextRequest) {
           new: newEvent.title,
           date: targetDateStr,
         });
-
-        // Move to next week
-        nextDate.setDate(nextDate.getDate() + 7);
       }
     }
 
