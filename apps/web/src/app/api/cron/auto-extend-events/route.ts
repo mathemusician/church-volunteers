@@ -23,9 +23,9 @@ export async function GET(request: NextRequest) {
     const generatedEvents = [];
     const today = new Date();
 
-    // Calculate dates for the next 4 weeks
+    // Calculate dates for the next 8 weeks (2 months ahead)
     const futureDates = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 8; i++) {
       const futureDate = new Date(today);
       futureDate.setDate(today.getDate() + i * 7);
       futureDates.push(futureDate);
