@@ -79,26 +79,26 @@ export async function sendSMS(options: SendSMSOptions): Promise<SendSMSResult> {
     return { success: false, error: 'SMS not configured' };
   }
 
-  // Rate limiting: Check if we already sent this type of SMS for this signup today
-  if (signupId) {
-    try {
-      const existing = await query(
-        `SELECT id FROM sms_messages 
-         WHERE signup_id = $1 
-         AND message_type = $2 
-         AND status IN ('sent', 'pending')
-         AND created_at > NOW() - INTERVAL '24 hours'
-         LIMIT 1`,
-        [signupId, messageType]
-      );
+  // Rate limiting: Check if we already sent this type of SMS to this PHONE for this EVENT today
+  // This prevents duplicate messages when someone signs up for multiple lists on the same event
+  try {
+    const existing = await query(
+      `SELECT id FROM sms_messages 
+       WHERE to_phone = $1 
+       AND event_id = $2
+       AND message_type = $3 
+       AND status IN ('sent', 'pending')
+       AND created_at > NOW() - INTERVAL '24 hours'
+       LIMIT 1`,
+      [to, eventId || null, messageType]
+    );
 
-      if (existing.rows.length > 0) {
-        console.log(`⏭️ Skipping duplicate ${messageType} SMS for signup ${signupId}`);
-        return { success: true, error: 'Already sent' };
-      }
-    } catch (err) {
-      console.error('Rate limit check failed:', err);
+    if (existing.rows.length > 0) {
+      console.log(`⏭️ Skipping duplicate ${messageType} SMS to ${to} for event ${eventId}`);
+      return { success: true, error: 'Already sent' };
     }
+  } catch (err) {
+    console.error('Rate limit check failed:', err);
   }
 
   // Create pending log entry

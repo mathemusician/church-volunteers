@@ -8,36 +8,36 @@ interface EventDetails {
   event_date: string | null;
 }
 
-// Get all volunteers with SMS consent for an event
-async function getEventVolunteers(eventId: number) {
+// Get all unique phones with SMS consent for an event, aggregating list titles
+async function getEventVolunteersByPhone(eventId: number) {
   const result = await query(
-    `SELECT DISTINCT 
-      vs.id as signup_id,
-      vs.name,
+    `SELECT 
       vs.phone,
-      vl.title as list_title
+      MIN(vs.id) as signup_id,
+      STRING_AGG(DISTINCT vl.title, ', ' ORDER BY vl.title) as list_titles
     FROM volunteer_signups vs
     JOIN volunteer_lists vl ON vs.list_id = vl.id
     WHERE vl.event_id = $1
       AND vs.phone IS NOT NULL
       AND vs.sms_consent = true
-      AND vs.sms_opted_out = false`,
+      AND vs.sms_opted_out = false
+    GROUP BY vs.phone`,
     [eventId]
   );
   return result.rows;
 }
 
-// Send cancellation notifications to all volunteers for an event
+// Send cancellation notifications to all volunteers for an event (one per phone)
 export async function sendCancellationNotifications(
   event: EventDetails
 ): Promise<{ sent: number; failed: number }> {
-  const volunteers = await getEventVolunteers(event.id);
+  const volunteers = await getEventVolunteersByPhone(event.id);
 
   let sent = 0;
   let failed = 0;
 
   for (const vol of volunteers) {
-    const message = `CANCELLED: ${event.title} - ${vol.list_title} has been cancelled. We apologize for any inconvenience.`;
+    const message = `CANCELLED: ${event.title} (${vol.list_titles}) has been cancelled. We apologize for any inconvenience.`;
 
     const result = await sendSMS({
       to: vol.phone,
@@ -63,12 +63,12 @@ export async function sendCancellationNotifications(
   return { sent, failed };
 }
 
-// Send change notifications to all volunteers for an event
+// Send change notifications to all volunteers for an event (one per phone)
 export async function sendChangeNotifications(
   event: EventDetails,
   changeDescription: string
 ): Promise<{ sent: number; failed: number }> {
-  const volunteers = await getEventVolunteers(event.id);
+  const volunteers = await getEventVolunteersByPhone(event.id);
 
   let sent = 0;
   let failed = 0;
