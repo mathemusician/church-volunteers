@@ -22,14 +22,11 @@ export async function GET(request: NextRequest) {
 
     const generatedEvents = [];
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
 
-    // Calculate dates for the next 8 weeks (2 months ahead)
-    const futureDates = [];
-    for (let i = 0; i < 8; i++) {
-      const futureDate = new Date(today);
-      futureDate.setDate(today.getDate() + i * 7);
-      futureDates.push(futureDate);
-    }
+    // Target: always maintain exactly 5 future events per template
+    const TARGET_FUTURE_EVENTS = 5;
 
     for (const template of templatesResult.rows) {
       // Determine which day of week this template is for
@@ -39,16 +36,47 @@ export async function GET(request: NextRequest) {
         targetDayOfWeek = beginDate.getDay();
       }
 
-      // For each of the next 4 weeks, check if we need to create an event
-      for (const checkDate of futureDates) {
-        // Adjust to the target day of week
-        const daysUntilTarget = (targetDayOfWeek - checkDate.getDay() + 7) % 7;
-        const targetDate = new Date(checkDate);
-        targetDate.setDate(checkDate.getDate() + daysUntilTarget);
+      // Count existing future events for this template
+      const futureEventsResult = await query(
+        `SELECT COUNT(*) as count FROM volunteer_events 
+         WHERE template_id = $1 
+         AND event_date >= $2
+         AND is_template = false`,
+        [template.id, todayStr]
+      );
 
-        const targetDateStr = targetDate.toISOString().split('T')[0];
+      const currentFutureCount = parseInt(futureEventsResult.rows[0].count, 10);
+      const eventsToCreate = TARGET_FUTURE_EVENTS - currentFutureCount;
 
-        // Check if event already exists for this template + date
+      if (eventsToCreate <= 0) {
+        continue; // Already have enough future events
+      }
+
+      // Find the latest event date for this template
+      const latestEventResult = await query(
+        `SELECT MAX(event_date) as latest FROM volunteer_events 
+         WHERE template_id = $1 
+         AND is_template = false`,
+        [template.id]
+      );
+
+      let nextDate: Date;
+      if (latestEventResult.rows[0].latest) {
+        // Start from the week after the latest event
+        nextDate = new Date(latestEventResult.rows[0].latest);
+        nextDate.setDate(nextDate.getDate() + 7);
+      } else {
+        // No events yet, find the next occurrence of target day
+        nextDate = new Date(today);
+        const daysUntilTarget = (targetDayOfWeek - today.getDay() + 7) % 7;
+        nextDate.setDate(today.getDate() + (daysUntilTarget === 0 ? 7 : daysUntilTarget));
+      }
+
+      // Create the needed events
+      for (let i = 0; i < eventsToCreate; i++) {
+        const targetDateStr = nextDate.toISOString().split('T')[0];
+
+        // Double-check event doesn't already exist
         const existingCheck = await query(
           `SELECT id FROM volunteer_events 
            WHERE template_id = $1 
@@ -57,11 +85,12 @@ export async function GET(request: NextRequest) {
         );
 
         if (existingCheck.rows.length > 0) {
-          continue; // Event already exists
+          nextDate.setDate(nextDate.getDate() + 7);
+          continue;
         }
 
         // Generate title with date
-        const formattedDate = targetDate.toLocaleDateString('en-US', {
+        const formattedDate = nextDate.toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
         });
@@ -134,6 +163,9 @@ export async function GET(request: NextRequest) {
           new: newEvent.title,
           date: targetDateStr,
         });
+
+        // Move to next week
+        nextDate.setDate(nextDate.getDate() + 7);
       }
     }
 
