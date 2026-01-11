@@ -14,9 +14,25 @@ export async function GET() {
       ON volunteer_events(sort_order)
     `);
 
+    // Add QR token and email columns to volunteer_signups
+    await query(`
+      ALTER TABLE volunteer_signups 
+      ADD COLUMN IF NOT EXISTS qr_token VARCHAR(64)
+    `);
+
+    await query(`
+      ALTER TABLE volunteer_signups 
+      ADD COLUMN IF NOT EXISTS email VARCHAR(255)
+    `);
+
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_volunteer_signups_qr_token 
+      ON volunteer_signups(qr_token)
+    `);
+
     return NextResponse.json({
       message: 'Migration completed successfully',
-      migration: '010_add_sort_order',
+      migrations: ['010_add_sort_order', '012_add_qr_token'],
     });
   } catch (error: any) {
     console.error('Migration error:', error);

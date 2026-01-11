@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import type { List } from '../hooks/useLists';
+import { QRCodeModal } from './QRCodeModal';
 
 interface ListsPanelProps {
   lists: List[];
@@ -22,6 +23,13 @@ export function ListsPanel({
 }: ListsPanelProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const dragOverIndexRef = useRef<number | null>(null);
+  const [qrModalList, setQrModalList] = useState<List | null>(null);
+
+  const getQuickSignupUrl = (listId: number) => {
+    return typeof window !== 'undefined'
+      ? `${window.location.origin}/quick-signup/${listId}`
+      : `/quick-signup/${listId}`;
+  };
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
@@ -82,6 +90,15 @@ export function ListsPanel({
 
   return (
     <>
+      {qrModalList && (
+        <QRCodeModal
+          isOpen={true}
+          onClose={() => setQrModalList(null)}
+          title={qrModalList.title}
+          url={getQuickSignupUrl(qrModalList.id)}
+          description="Share this QR code for quick signup to this role"
+        />
+      )}
       <div className="flex justify-between items-center mb-4">
         <div className="flex gap-2">
           {lists.length > 0 && (
@@ -160,6 +177,21 @@ export function ListsPanel({
                   </div>
                 </div>
                 <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => setQrModalList(list)}
+                    className="text-xs px-3 py-1 rounded bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors flex items-center gap-1"
+                    title="Get QR Code"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                      />
+                    </svg>
+                    QR
+                  </button>
                   <button
                     onClick={() => onToggleLock(list)}
                     className={`text-xs px-3 py-1 rounded transition-colors ${
