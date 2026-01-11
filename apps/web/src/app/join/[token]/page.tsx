@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 
@@ -25,19 +25,9 @@ export default function JoinPage() {
   const [error, setError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [joined, setJoined] = useState(false);
+  const hasInitiatedJoin = useRef(false);
 
-  useEffect(() => {
-    fetchLinkInfo();
-  }, [token]);
-
-  // Auto-join if user is already signed in
-  useEffect(() => {
-    if (status === 'authenticated' && linkInfo && !joined && !joining) {
-      handleJoin();
-    }
-  }, [status, linkInfo, joined, joining]);
-
-  const fetchLinkInfo = async () => {
+  const fetchLinkInfo = useCallback(async () => {
     try {
       const response = await fetch(`/api/join/${token}`);
       if (!response.ok) {
@@ -46,24 +36,23 @@ export default function JoinPage() {
       }
       const data = await response.json();
       setLinkInfo(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load invite link');
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
-  const handleJoin = async () => {
+  const handleJoin = useCallback(async () => {
     if (!session?.user?.email) {
-      sessionStorage.setItem('pendingJoinToken', token);
       signIn(undefined, { callbackUrl: `/join/${token}` });
       return;
     }
 
-    // Check domain restriction
+    // Domain restriction is checked server-side, but show early error for UX
     if (linkInfo?.domainRestriction) {
       const emailDomain = session.user.email.split('@')[1];
-      if (emailDomain !== linkInfo.domainRestriction) {
+      if (emailDomain.toLowerCase() !== linkInfo.domainRestriction.toLowerCase()) {
         setError(`This invite is only for @${linkInfo.domainRestriction} email addresses`);
         return;
       }
@@ -84,14 +73,31 @@ export default function JoinPage() {
       setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to join');
       setJoining(false);
     }
-  };
+  }, [token, router, session?.user?.email, linkInfo?.domainRestriction]);
+
+  useEffect(() => {
+    fetchLinkInfo();
+  }, [fetchLinkInfo]);
+
+  // Auto-join if user is already signed in (with guard to prevent double-join)
+  useEffect(() => {
+    if (
+      status === 'authenticated' &&
+      linkInfo &&
+      !joined &&
+      !joining &&
+      !hasInitiatedJoin.current
+    ) {
+      hasInitiatedJoin.current = true;
+      handleJoin();
+    }
+  }, [status, linkInfo, joined, joining, handleJoin]);
 
   const handleSignInAndJoin = () => {
-    sessionStorage.setItem('pendingJoinToken', token);
     signIn(undefined, { callbackUrl: `/join/${token}` });
   };
 

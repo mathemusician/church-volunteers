@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 
@@ -25,19 +25,9 @@ export default function InvitePage() {
   const [error, setError] = useState<string | null>(null);
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const hasInitiatedAccept = useRef(false);
 
-  useEffect(() => {
-    fetchInvite();
-  }, [token]);
-
-  // Auto-accept if user is already signed in
-  useEffect(() => {
-    if (status === 'authenticated' && invite && !accepted && !accepting) {
-      handleAccept();
-    }
-  }, [status, invite, accepted, accepting]);
-
-  const fetchInvite = async () => {
+  const fetchInvite = useCallback(async () => {
     try {
       const response = await fetch(`/api/invites/${token}`);
       if (!response.ok) {
@@ -46,17 +36,15 @@ export default function InvitePage() {
       }
       const data = await response.json();
       setInvite(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load invite');
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
-  const handleAccept = async () => {
+  const handleAccept = useCallback(async () => {
     if (!session?.user?.email) {
-      // Store token in sessionStorage and redirect to sign in
-      sessionStorage.setItem('pendingInviteToken', token);
       signIn(undefined, { callbackUrl: `/invite/${token}` });
       return;
     }
@@ -77,14 +65,31 @@ export default function InvitePage() {
       setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to accept invite');
       setAccepting(false);
     }
-  };
+  }, [token, router, session?.user?.email]);
+
+  useEffect(() => {
+    fetchInvite();
+  }, [fetchInvite]);
+
+  // Auto-accept if user is already signed in (with guard to prevent double-accept)
+  useEffect(() => {
+    if (
+      status === 'authenticated' &&
+      invite &&
+      !accepted &&
+      !accepting &&
+      !hasInitiatedAccept.current
+    ) {
+      hasInitiatedAccept.current = true;
+      handleAccept();
+    }
+  }, [status, invite, accepted, accepting, handleAccept]);
 
   const handleSignInAndAccept = () => {
-    sessionStorage.setItem('pendingInviteToken', token);
     signIn(undefined, { callbackUrl: `/invite/${token}` });
   };
 
