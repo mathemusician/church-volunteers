@@ -28,12 +28,22 @@ interface RoleInfo {
   }[];
 }
 
+interface OtherRole {
+  list_id: number;
+  title: string;
+  description: string | null;
+  spots_remaining: number | null;
+}
+
 interface SignupConfirmation {
   id: number;
   name: string;
+  phone: string | null;
   role: string;
+  eventId: number;
   eventTitle: string;
   eventDate: string | null;
+  otherRoles: OtherRole[];
 }
 
 export default function QuickSignupPage() {
@@ -52,6 +62,8 @@ export default function QuickSignupPage() {
   const [confirmation, setConfirmation] = useState<SignupConfirmation | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [signingUpFor, setSigningUpFor] = useState<number | null>(null);
+  const [signedUpRoles, setSignedUpRoles] = useState<string[]>([]);
 
   const fetchRoleInfo = useCallback(
     async (silent = false) => {
@@ -203,7 +215,36 @@ export default function QuickSignupPage() {
     setName('');
     setConfirmation(null);
     setError(null);
+    setSignedUpRoles([]);
     fetchRoleInfo();
+  };
+
+  const handleSignupForRole = async (otherListId: number, roleTitle: string) => {
+    if (!confirmation) return;
+
+    setSigningUpFor(otherListId);
+    try {
+      const response = await fetch(`/api/quick-signup/${otherListId}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: confirmation.name,
+          phone: confirmation.phone || null,
+          eventId: confirmation.eventId,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to sign up');
+      }
+
+      setSignedUpRoles((prev) => [...prev, roleTitle]);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSigningUpFor(null);
+    }
   };
 
   if (loading) {
@@ -302,6 +343,51 @@ export default function QuickSignupPage() {
               <QRCodeSVG value={qrData} size={140} level="M" />
             </div>
           </div>
+
+          {/* Cross-sell: Other roles needed */}
+          {confirmation.otherRoles && confirmation.otherRoles.length > 0 && (
+            <div className="mb-5 text-left">
+              <p className="text-sm font-medium text-gray-700 mb-2">We also need help with:</p>
+              <div className="space-y-2">
+                {confirmation.otherRoles
+                  .filter((role) => !signedUpRoles.includes(role.title))
+                  .map((role) => (
+                    <div
+                      key={role.list_id}
+                      className="flex items-center justify-between p-3 bg-indigo-50 border border-indigo-100 rounded-xl"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm truncate">{role.title}</p>
+                        {role.spots_remaining !== null && (
+                          <p className="text-xs text-indigo-600">
+                            {role.spots_remaining} spot
+                            {role.spots_remaining !== 1 ? 's' : ''} left
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleSignupForRole(role.list_id, role.title)}
+                        disabled={signingUpFor === role.list_id}
+                        className="ml-3 px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 transition-colors whitespace-nowrap"
+                      >
+                        {signingUpFor === role.list_id ? '...' : 'Sign Up'}
+                      </button>
+                    </div>
+                  ))}
+              </div>
+              {signedUpRoles.length > 0 && (
+                <p className="text-xs text-green-600 mt-2">
+                  ✓ Also signed up for: {signedUpRoles.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
 
           <button
             onClick={handleNewSignup}

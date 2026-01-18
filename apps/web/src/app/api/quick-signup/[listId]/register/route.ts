@@ -117,25 +117,56 @@ export async function POST(
 
     // Get event details for response (still within transaction)
     const eventResult = await client.query(
-      `SELECT ve.title, ve.event_date, vl.title as role_title
+      `SELECT ve.id as event_id, ve.title, ve.event_date, vl.title as role_title
        FROM volunteer_events ve
        JOIN volunteer_lists vl ON vl.event_id = ve.id
        WHERE vl.id = $1`,
       [targetListId]
     );
 
+    const eventInfo = eventResult.rows[0];
+
+    // Get other available roles for the same event (for cross-sell on confirmation)
+    const otherRolesResult = await client.query(
+      `SELECT 
+        vl.id as list_id,
+        vl.title,
+        vl.description,
+        vl.max_slots,
+        vl.is_locked,
+        COUNT(vs.id)::int as signup_count
+       FROM volunteer_lists vl
+       LEFT JOIN volunteer_signups vs ON vl.id = vs.list_id
+       WHERE vl.event_id = $1 
+         AND vl.id != $2
+         AND vl.is_locked = false
+       GROUP BY vl.id
+       HAVING vl.max_slots IS NULL OR COUNT(vs.id) < vl.max_slots
+       ORDER BY vl.title
+       LIMIT 3`,
+      [eventInfo.event_id, targetListId]
+    );
+
+    const otherRoles = otherRolesResult.rows.map((row: any) => ({
+      list_id: row.list_id,
+      title: row.title,
+      description: row.description,
+      spots_remaining: row.max_slots ? row.max_slots - row.signup_count : null,
+    }));
+
     // Commit the transaction
     await client.query('COMMIT');
-
-    const eventInfo = eventResult.rows[0];
 
     return NextResponse.json(
       {
         id: signup.id,
         name: name.trim(),
+        phone: formattedPhone,
         role: eventInfo.role_title,
+        eventId: eventInfo.event_id,
         eventTitle: eventInfo.title,
         eventDate: eventInfo.event_date,
+        otherRoles,
       },
       { status: 201 }
     );
