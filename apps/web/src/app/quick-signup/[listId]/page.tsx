@@ -329,18 +329,11 @@ export default function QuickSignupPage() {
         </div>
 
         {/* Status badges */}
-        {(roleInfo?.is_locked || roleInfo?.is_full) && (
+        {roleInfo?.is_locked && (
           <div className="mb-4 text-center">
-            {roleInfo.is_locked && (
-              <span className="inline-block px-3 py-1 bg-red-100 text-red-700 text-sm rounded-full">
-                🔒 Signups Closed
-              </span>
-            )}
-            {roleInfo.is_full && !roleInfo.is_locked && (
-              <span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 text-sm rounded-full">
-                This role is full
-              </span>
-            )}
+            <span className="inline-block px-3 py-1 bg-red-100 text-red-700 text-sm rounded-full">
+              🔒 Signups Closed
+            </span>
           </div>
         )}
 
@@ -350,152 +343,169 @@ export default function QuickSignupPage() {
           </div>
         )}
 
-        {!roleInfo?.is_locked && !roleInfo?.is_full && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Name */}
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Your Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg"
-                placeholder="Enter your name"
-                autoFocus
-                required
-              />
+        {/* Message when ALL dates are full */}
+        {!roleInfo?.is_locked &&
+          roleInfo?.available_dates &&
+          !roleInfo.available_dates.some((d) => !d.is_full && !d.is_locked) && (
+            <div className="text-center p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <p className="text-amber-700 font-medium">All dates are currently full</p>
+              <p className="text-amber-600 text-sm mt-1">Please check back later for openings</p>
             </div>
+          )}
 
-            {/* Phone */}
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone <span className="text-gray-400">(for reminders)</span>
-              </label>
-              <input
-                type="tel"
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="555-123-4567"
-              />
-            </div>
-
-            {/* Date Selection */}
-            {roleInfo?.available_dates && roleInfo.available_dates.length > 1 && (
+        {/* Show form if not locked AND there are available dates */}
+        {!roleInfo?.is_locked &&
+          roleInfo?.available_dates?.some((d) => !d.is_full && !d.is_locked) && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Name */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">Select Date</label>
-                  <span className="text-xs text-gray-400">
-                    Updated{' '}
-                    {lastRefresh.toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                </div>
-                <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 p-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    {roleInfo.available_dates.map((date) => {
-                      const isDisabled = date.is_full || date.is_locked;
-                      const isSelected = selectedDate === date.id;
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Your Name
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg"
+                  placeholder="Enter your name"
+                  autoFocus
+                  required
+                />
+              </div>
 
-                      return (
-                        <button
-                          key={date.id}
-                          type="button"
-                          disabled={isDisabled}
-                          onClick={() => !isDisabled && setSelectedDate(date.id)}
-                          className={`p-3 border-2 rounded-xl text-center transition-all relative ${
-                            isDisabled
-                              ? 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
-                              : isSelected
-                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                : 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50'
-                          }`}
-                        >
-                          {date.is_locked && (
-                            <span className="absolute top-1 right-1 text-xs">🔒</span>
-                          )}
-                          <div className="font-semibold text-sm">
-                            {date.event_date
-                              ? new Date(date.event_date).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                })
-                              : date.title}
-                          </div>
-                          {date.event_date && (
-                            <div
-                              className={`text-xs ${isDisabled ? 'text-gray-400' : 'text-gray-500'}`}
+              {/* Phone */}
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone <span className="text-gray-400">(for reminders)</span>
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="555-123-4567"
+                />
+              </div>
+
+              {/* Date Selection - always show if there are multiple dates OR if current date is full */}
+              {roleInfo?.available_dates &&
+                (roleInfo.available_dates.length > 1 || roleInfo.is_full) && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">Select Date</label>
+                      <span className="text-xs text-gray-400">
+                        Updated{' '}
+                        {lastRefresh.toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 p-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        {roleInfo.available_dates.map((date) => {
+                          const isDisabled = date.is_full || date.is_locked;
+                          const isSelected = selectedDate === date.id;
+
+                          return (
+                            <button
+                              key={date.id}
+                              type="button"
+                              disabled={isDisabled}
+                              onClick={() => !isDisabled && setSelectedDate(date.id)}
+                              className={`p-3 border-2 rounded-xl text-center transition-all relative ${
+                                isDisabled
+                                  ? 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
+                                  : isSelected
+                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                    : 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50'
+                              }`}
                             >
-                              {new Date(date.event_date).toLocaleDateString('en-US', {
-                                weekday: 'short',
-                              })}
-                            </div>
-                          )}
-                          {/* Availability indicator */}
-                          <div
-                            className={`text-xs mt-1 font-medium ${
-                              date.is_full
-                                ? 'text-red-500'
-                                : date.spots_remaining !== null && date.spots_remaining <= 2
-                                  ? 'text-amber-600'
-                                  : 'text-green-600'
-                            }`}
-                          >
-                            {date.is_locked
-                              ? 'Closed'
-                              : date.is_full
-                                ? 'Full'
-                                : date.spots_remaining !== null
-                                  ? `${date.spots_remaining} spot${date.spots_remaining !== 1 ? 's' : ''}`
-                                  : 'Open'}
-                          </div>
-                        </button>
-                      );
-                    })}
+                              {date.is_locked && (
+                                <span className="absolute top-1 right-1 text-xs">🔒</span>
+                              )}
+                              <div className="font-semibold text-sm">
+                                {date.event_date
+                                  ? new Date(date.event_date).toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                    })
+                                  : date.title}
+                              </div>
+                              {date.event_date && (
+                                <div
+                                  className={`text-xs ${isDisabled ? 'text-gray-400' : 'text-gray-500'}`}
+                                >
+                                  {new Date(date.event_date).toLocaleDateString('en-US', {
+                                    weekday: 'short',
+                                  })}
+                                </div>
+                              )}
+                              {/* Availability indicator */}
+                              <div
+                                className={`text-xs mt-1 font-medium ${
+                                  date.is_full
+                                    ? 'text-red-500'
+                                    : date.spots_remaining !== null && date.spots_remaining <= 2
+                                      ? 'text-amber-600'
+                                      : 'text-green-600'
+                                }`}
+                              >
+                                {date.is_locked
+                                  ? 'Closed'
+                                  : date.is_full
+                                    ? 'Full'
+                                    : date.spots_remaining !== null
+                                      ? `${date.spots_remaining} spot${date.spots_remaining !== 1 ? 's' : ''}`
+                                      : 'Open'}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
+                )}
+
+              {/* Warning if no date selected */}
+              {roleInfo?.available_dates &&
+                roleInfo.available_dates.length > 1 &&
+                !selectedDate && (
+                  <div className="text-center text-sm text-amber-600 bg-amber-50 p-2 rounded-lg">
+                    Please select an available date above
+                  </div>
+                )}
+
+              {/* Slots indicator for selected date */}
+              {selectedDate && roleInfo?.available_dates && (
+                <div className="text-center text-sm text-gray-500">
+                  {(() => {
+                    const selected = roleInfo.available_dates.find((d) => d.id === selectedDate);
+                    if (!selected) return null;
+                    if (selected.spots_remaining === null) return 'Open slots available';
+                    return `${selected.spots_remaining} spot${selected.spots_remaining !== 1 ? 's' : ''} remaining`;
+                  })()}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Warning if no date selected */}
-            {roleInfo?.available_dates && roleInfo.available_dates.length > 1 && !selectedDate && (
-              <div className="text-center text-sm text-amber-600 bg-amber-50 p-2 rounded-lg">
-                Please select an available date above
-              </div>
-            )}
-
-            {/* Slots indicator for selected date */}
-            {selectedDate && roleInfo?.available_dates && (
-              <div className="text-center text-sm text-gray-500">
-                {(() => {
-                  const selected = roleInfo.available_dates.find((d) => d.id === selectedDate);
-                  if (!selected) return null;
-                  if (selected.spots_remaining === null) return 'Open slots available';
-                  return `${selected.spots_remaining} spot${selected.spots_remaining !== 1 ? 's' : ''} remaining`;
-                })()}
-              </div>
-            )}
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={
-                submitting ||
-                !name.trim() ||
-                (roleInfo?.available_dates && roleInfo.available_dates.length > 1 && !selectedDate)
-              }
-              className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-lg"
-            >
-              {submitting ? 'Signing Up...' : 'Sign Me Up!'}
-            </button>
-          </form>
-        )}
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={
+                  submitting ||
+                  !name.trim() ||
+                  (roleInfo?.available_dates &&
+                    roleInfo.available_dates.length > 1 &&
+                    !selectedDate)
+                }
+                className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-lg"
+              >
+                {submitting ? 'Signing Up...' : 'Sign Me Up!'}
+              </button>
+            </form>
+          )}
       </div>
     </div>
   );
