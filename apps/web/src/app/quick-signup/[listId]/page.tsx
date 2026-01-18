@@ -212,7 +212,9 @@ export default function QuickSignupPage() {
 
   const handleNewSignup = () => {
     setStep('form');
-    setName('');
+    // Restore saved name from localStorage for convenience
+    const savedName = localStorage.getItem('volunteerName');
+    setName(savedName || '');
     setConfirmation(null);
     setError(null);
     setSignedUpRoles([]);
@@ -240,6 +242,7 @@ export default function QuickSignupPage() {
       }
 
       setSignedUpRoles((prev) => [...prev, roleTitle]);
+      setError(null); // Clear any previous error on success
     } catch (err: any) {
       setError(err.message);
     } finally {

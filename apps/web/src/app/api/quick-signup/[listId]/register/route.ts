@@ -47,7 +47,7 @@ export async function POST(
     const originalList = listResult.rows[0];
 
     // Determine target list ID based on selected event
-    let targetListId = parseInt(listId);
+    let targetListId = listIdInt;
 
     if (eventId && eventId !== originalList.event_id) {
       // Find the list with the same title in the target event
@@ -126,7 +126,11 @@ export async function POST(
 
     const eventInfo = eventResult.rows[0];
 
+    // Commit the transaction first to release locks
+    await client.query('COMMIT');
+
     // Get other available roles for the same event (for cross-sell on confirmation)
+    // This runs after commit since it doesn't need to be atomic with the signup
     const otherRolesResult = await client.query(
       `SELECT 
         vl.id as list_id,
@@ -153,9 +157,6 @@ export async function POST(
       description: row.description,
       spots_remaining: row.max_slots ? row.max_slots - row.signup_count : null,
     }));
-
-    // Commit the transaction
-    await client.query('COMMIT');
 
     return NextResponse.json(
       {
