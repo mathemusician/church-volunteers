@@ -6,15 +6,23 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ listId: string }> }
 ) {
-  const client = await getClient();
+  let client;
 
   try {
     const { listId } = await params;
     const { name, phone, eventId } = await request.json();
 
+    // Validate listId is a valid integer
+    const listIdInt = parseInt(listId, 10);
+    if (isNaN(listIdInt) || listIdInt <= 0) {
+      return NextResponse.json({ error: 'Invalid role ID' }, { status: 400 });
+    }
+
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
+
+    client = await getClient();
 
     // Format phone early
     const formattedPhone = phone ? formatPhoneNumber(phone) : null;
@@ -28,7 +36,7 @@ export async function POST(
        FROM volunteer_lists vl
        JOIN volunteer_events ve ON vl.event_id = ve.id
        WHERE vl.id = $1`,
-      [listId]
+      [listIdInt]
     );
 
     if (listResult.rows.length === 0) {
@@ -132,11 +140,13 @@ export async function POST(
       { status: 201 }
     );
   } catch (error: any) {
-    // Rollback on any error
-    try {
-      await client.query('ROLLBACK');
-    } catch (rollbackError) {
-      // Ignore rollback errors
+    // Rollback on any error (only if client was acquired)
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        // Ignore rollback errors
+      }
     }
 
     // Handle serialization failures (concurrent transaction conflict)
@@ -153,7 +163,9 @@ export async function POST(
     console.error('Error registering volunteer:', error);
     return NextResponse.json({ error: 'Failed to sign up' }, { status: 500 });
   } finally {
-    // Always release the client back to the pool
-    client.release();
+    // Always release the client back to the pool (only if acquired)
+    if (client) {
+      client.release();
+    }
   }
 }

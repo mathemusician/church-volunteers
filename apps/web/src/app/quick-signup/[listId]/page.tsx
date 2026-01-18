@@ -103,6 +103,18 @@ export default function QuickSignupPage() {
 
   useEffect(() => {
     fetchRoleInfo();
+  }, [listId, fetchRoleInfo]);
+
+  // Separate effect for polling - only poll when on form step
+  useEffect(() => {
+    // Don't poll on confirmation page
+    if (step === 'confirmation') {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      return;
+    }
 
     // Poll for availability updates every 10 seconds when on form step
     pollIntervalRef.current = setInterval(() => {
@@ -114,9 +126,10 @@ export default function QuickSignupPage() {
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
       }
     };
-  }, [listId, fetchRoleInfo]);
+  }, [step, fetchRoleInfo]);
 
   useEffect(() => {
     // Load saved name/phone from localStorage

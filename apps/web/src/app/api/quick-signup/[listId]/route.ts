@@ -8,6 +8,12 @@ export async function GET(
   try {
     const { listId } = await params;
 
+    // Validate listId is a valid integer
+    const listIdInt = parseInt(listId, 10);
+    if (isNaN(listIdInt) || listIdInt <= 0) {
+      return NextResponse.json({ error: 'Invalid role ID' }, { status: 400 });
+    }
+
     // Get role (list) info with event details
     const listResult = await query(
       `SELECT 
@@ -26,7 +32,7 @@ export async function GET(
        LEFT JOIN volunteer_signups vs ON vl.id = vs.list_id
        WHERE vl.id = $1
        GROUP BY vl.id, ve.id`,
-      [listId]
+      [listIdInt]
     );
 
     if (listResult.rows.length === 0) {
