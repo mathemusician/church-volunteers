@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -14,7 +14,18 @@ interface RoleInfo {
   is_locked: boolean;
   event_title: string;
   event_date: string | null;
-  available_dates: { id: number; title: string; event_date: string | null; slug: string }[];
+  available_dates: {
+    id: number;
+    title: string;
+    event_date: string | null;
+    slug: string;
+    list_id: number;
+    max_slots: number | null;
+    signup_count: number;
+    spots_remaining: number | null;
+    is_full: boolean;
+    is_locked: boolean;
+  }[];
 }
 
 interface SignupConfirmation {
@@ -39,10 +50,73 @@ export default function QuickSignupPage() {
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState<SignupConfirmation | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchRoleInfo = useCallback(
+    async (silent = false) => {
+      try {
+        if (!silent) setLoading(true);
+        const response = await fetch(`/api/quick-signup/${listId}`);
+        if (!response.ok) throw new Error('Role not found');
+        const data = await response.json();
+        setRoleInfo(data);
+        setLastRefresh(new Date());
+
+        // Handle date selection
+        if (data.available_dates?.length > 0) {
+          if (!silent) {
+            // Initial load: pre-select first available date
+            const firstAvailable = data.available_dates.find(
+              (d: any) => !d.is_full && !d.is_locked
+            );
+            if (firstAvailable) {
+              setSelectedDate(firstAvailable.id);
+            }
+          } else {
+            // Silent refresh: check if currently selected date is still available
+            setSelectedDate((currentSelected) => {
+              if (currentSelected === null) return null;
+              const selectedDateInfo = data.available_dates.find(
+                (d: any) => d.id === currentSelected
+              );
+              // If selected date is now full or locked, clear selection
+              if (selectedDateInfo && (selectedDateInfo.is_full || selectedDateInfo.is_locked)) {
+                // Find next available
+                const nextAvailable = data.available_dates.find(
+                  (d: any) => !d.is_full && !d.is_locked
+                );
+                return nextAvailable?.id ?? null;
+              }
+              return currentSelected;
+            });
+          }
+        }
+      } catch (err: any) {
+        if (!silent) setError(err.message);
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [listId]
+  );
 
   useEffect(() => {
     fetchRoleInfo();
-  }, [listId]);
+
+    // Poll for availability updates every 10 seconds when on form step
+    pollIntervalRef.current = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchRoleInfo(true);
+      }
+    }, 10000);
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [listId, fetchRoleInfo]);
 
   useEffect(() => {
     // Load saved name/phone from localStorage
@@ -51,24 +125,6 @@ export default function QuickSignupPage() {
     if (savedName) setName(savedName);
     if (savedPhone) setPhone(savedPhone);
   }, []);
-
-  const fetchRoleInfo = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/quick-signup/${listId}`);
-      if (!response.ok) throw new Error('Role not found');
-      const data = await response.json();
-      setRoleInfo(data);
-      // Pre-select first available date
-      if (data.available_dates?.length > 0) {
-        setSelectedDate(data.available_dates[0].id);
-      }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,12 +151,31 @@ export default function QuickSignupPage() {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
+        // If slot was taken by someone else, refresh availability and auto-select next available
+        if (data.code === 'SLOT_TAKEN' || response.status === 409) {
+          // Fetch fresh data and update selection based on NEW data
+          const refreshResponse = await fetch(`/api/quick-signup/${listId}`);
+          if (refreshResponse.ok) {
+            const freshData = await refreshResponse.json();
+            setRoleInfo(freshData);
+            setLastRefresh(new Date());
+            // Find next available date from FRESH data
+            const nextAvailable = freshData.available_dates?.find(
+              (d: any) => d.id !== selectedDate && !d.is_full && !d.is_locked
+            );
+            if (nextAvailable) {
+              setSelectedDate(nextAvailable.id);
+            } else {
+              setSelectedDate(null);
+            }
+          }
+        }
         throw new Error(data.error || 'Failed to sign up');
       }
 
-      const data = await response.json();
       setConfirmation(data);
       setStep('confirmation');
     } catch (err: any) {
@@ -312,52 +387,109 @@ export default function QuickSignupPage() {
             {/* Date Selection */}
             {roleInfo?.available_dates && roleInfo.available_dates.length > 1 && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {roleInfo.available_dates.slice(0, 6).map((date) => (
-                    <button
-                      key={date.id}
-                      type="button"
-                      onClick={() => setSelectedDate(date.id)}
-                      className={`p-3 border-2 rounded-xl text-center transition-all ${
-                        selectedDate === date.id
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="font-semibold text-sm">
-                        {date.event_date
-                          ? new Date(date.event_date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                            })
-                          : date.title}
-                      </div>
-                      {date.event_date && (
-                        <div className="text-xs text-gray-500">
-                          {new Date(date.event_date).toLocaleDateString('en-US', {
-                            weekday: 'short',
-                          })}
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Select Date</label>
+                  <span className="text-xs text-gray-400">
+                    Updated{' '}
+                    {lastRefresh.toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+                <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 p-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    {roleInfo.available_dates.map((date) => {
+                      const isDisabled = date.is_full || date.is_locked;
+                      const isSelected = selectedDate === date.id;
+
+                      return (
+                        <button
+                          key={date.id}
+                          type="button"
+                          disabled={isDisabled}
+                          onClick={() => !isDisabled && setSelectedDate(date.id)}
+                          className={`p-3 border-2 rounded-xl text-center transition-all relative ${
+                            isDisabled
+                              ? 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
+                              : isSelected
+                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                : 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50'
+                          }`}
+                        >
+                          {date.is_locked && (
+                            <span className="absolute top-1 right-1 text-xs">🔒</span>
+                          )}
+                          <div className="font-semibold text-sm">
+                            {date.event_date
+                              ? new Date(date.event_date).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                })
+                              : date.title}
+                          </div>
+                          {date.event_date && (
+                            <div
+                              className={`text-xs ${isDisabled ? 'text-gray-400' : 'text-gray-500'}`}
+                            >
+                              {new Date(date.event_date).toLocaleDateString('en-US', {
+                                weekday: 'short',
+                              })}
+                            </div>
+                          )}
+                          {/* Availability indicator */}
+                          <div
+                            className={`text-xs mt-1 font-medium ${
+                              date.is_full
+                                ? 'text-red-500'
+                                : date.spots_remaining !== null && date.spots_remaining <= 2
+                                  ? 'text-amber-600'
+                                  : 'text-green-600'
+                            }`}
+                          >
+                            {date.is_locked
+                              ? 'Closed'
+                              : date.is_full
+                                ? 'Full'
+                                : date.spots_remaining !== null
+                                  ? `${date.spots_remaining} spot${date.spots_remaining !== 1 ? 's' : ''}`
+                                  : 'Open'}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Slots indicator */}
-            {roleInfo?.max_slots && (
+            {/* Warning if no date selected */}
+            {roleInfo?.available_dates && roleInfo.available_dates.length > 1 && !selectedDate && (
+              <div className="text-center text-sm text-amber-600 bg-amber-50 p-2 rounded-lg">
+                Please select an available date above
+              </div>
+            )}
+
+            {/* Slots indicator for selected date */}
+            {selectedDate && roleInfo?.available_dates && (
               <div className="text-center text-sm text-gray-500">
-                {roleInfo.max_slots - roleInfo.signup_count} spot
-                {roleInfo.max_slots - roleInfo.signup_count !== 1 ? 's' : ''} remaining
+                {(() => {
+                  const selected = roleInfo.available_dates.find((d) => d.id === selectedDate);
+                  if (!selected) return null;
+                  if (selected.spots_remaining === null) return 'Open slots available';
+                  return `${selected.spots_remaining} spot${selected.spots_remaining !== 1 ? 's' : ''} remaining`;
+                })()}
               </div>
             )}
 
             {/* Submit */}
             <button
               type="submit"
-              disabled={submitting || !name.trim()}
+              disabled={
+                submitting ||
+                !name.trim() ||
+                (roleInfo?.available_dates && roleInfo.available_dates.length > 1 && !selectedDate)
+              }
               className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-lg"
             >
               {submitting ? 'Signing Up...' : 'Sign Me Up!'}

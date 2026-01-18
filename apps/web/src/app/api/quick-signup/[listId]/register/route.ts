@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { getClient } from '@/lib/db';
 import { formatPhoneNumber } from '@/lib/sms';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ listId: string }> }
 ) {
+  const client = await getClient();
+
   try {
     const { listId } = await params;
     const { name, phone, eventId } = await request.json();
@@ -14,9 +16,15 @@ export async function POST(
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    // Get the list info to find the correct list for the selected event
-    const listResult = await query(
-      `SELECT vl.id, vl.title, vl.is_locked, vl.max_slots, vl.event_id, ve.template_id
+    // Format phone early
+    const formattedPhone = phone ? formatPhoneNumber(phone) : null;
+
+    // Start transaction with SERIALIZABLE isolation to prevent race conditions
+    await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
+
+    // Get the original list info to find the role title
+    const listResult = await client.query(
+      `SELECT vl.id, vl.title, vl.event_id, ve.template_id
        FROM volunteer_lists vl
        JOIN volunteer_events ve ON vl.event_id = ve.id
        WHERE vl.id = $1`,
@@ -24,91 +32,92 @@ export async function POST(
     );
 
     if (listResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return NextResponse.json({ error: 'Role not found' }, { status: 404 });
     }
 
     const originalList = listResult.rows[0];
 
-    // If a different event was selected, find the matching list for that event
+    // Determine target list ID based on selected event
     let targetListId = parseInt(listId);
 
     if (eventId && eventId !== originalList.event_id) {
       // Find the list with the same title in the target event
-      const targetListResult = await query(
-        `SELECT vl.id, vl.is_locked, vl.max_slots, COUNT(vs.id) as signup_count
-         FROM volunteer_lists vl
-         LEFT JOIN volunteer_signups vs ON vl.id = vs.list_id
-         WHERE vl.event_id = $1 AND vl.title = $2
-         GROUP BY vl.id`,
+      const targetResult = await client.query(
+        `SELECT id FROM volunteer_lists WHERE event_id = $1 AND title = $2`,
         [eventId, originalList.title]
       );
 
-      if (targetListResult.rows.length > 0) {
-        const targetList = targetListResult.rows[0];
-        targetListId = targetList.id;
-
-        // Check if target list is locked or full
-        if (targetList.is_locked) {
-          return NextResponse.json(
-            { error: 'This role is locked for the selected date' },
-            { status: 403 }
-          );
-        }
-        if (targetList.max_slots && parseInt(targetList.signup_count) >= targetList.max_slots) {
-          return NextResponse.json(
-            { error: 'This role is full for the selected date' },
-            { status: 400 }
-          );
-        }
-      } else {
+      if (targetResult.rows.length === 0) {
+        await client.query('ROLLBACK');
         return NextResponse.json(
           { error: 'Role not available for selected date' },
           { status: 404 }
         );
       }
-    } else {
-      // Check original list
-      const countResult = await query(
-        'SELECT COUNT(*) as count FROM volunteer_signups WHERE list_id = $1',
-        [targetListId]
-      );
-      const signupCount = parseInt(countResult.rows[0].count) || 0;
-
-      if (originalList.is_locked) {
-        return NextResponse.json({ error: 'This role is currently locked' }, { status: 403 });
-      }
-      if (originalList.max_slots && signupCount >= originalList.max_slots) {
-        return NextResponse.json({ error: 'This role is full' }, { status: 400 });
-      }
+      targetListId = targetResult.rows[0].id;
     }
 
-    // Get next position
-    const positionResult = await query(
-      'SELECT COALESCE(MAX(position), -1) + 1 as next_position FROM volunteer_signups WHERE list_id = $1',
+    // Lock the target list row and get current state in one query
+    const lockResult = await client.query(
+      `SELECT vl.id, vl.is_locked, vl.max_slots, COUNT(vs.id)::int as signup_count
+       FROM volunteer_lists vl
+       LEFT JOIN volunteer_signups vs ON vl.id = vs.list_id
+       WHERE vl.id = $1
+       GROUP BY vl.id
+       FOR UPDATE OF vl`,
       [targetListId]
     );
-    const nextPosition = positionResult.rows[0].next_position;
 
-    // Format phone
-    const formattedPhone = phone ? formatPhoneNumber(phone) : null;
+    if (lockResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ error: 'Role not found' }, { status: 404 });
+    }
 
-    // Insert signup
-    const signupResult = await query(
-      `INSERT INTO volunteer_signups (list_id, name, position, phone) 
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [targetListId, name.trim(), nextPosition, formattedPhone]
+    const targetList = lockResult.rows[0];
+
+    // Check if locked
+    if (targetList.is_locked) {
+      await client.query('ROLLBACK');
+      return NextResponse.json(
+        { error: 'This role is locked for the selected date' },
+        { status: 403 }
+      );
+    }
+
+    // Check if full
+    if (targetList.max_slots && targetList.signup_count >= targetList.max_slots) {
+      await client.query('ROLLBACK');
+      return NextResponse.json(
+        {
+          error: 'Sorry, this spot was just taken! Please select another date.',
+          code: 'SLOT_TAKEN',
+        },
+        { status: 409 }
+      );
+    }
+
+    // Insert the signup (we hold the lock, so this is safe)
+    const signupResult = await client.query(
+      `INSERT INTO volunteer_signups (list_id, name, position, phone)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [targetListId, name.trim(), targetList.signup_count, formattedPhone]
     );
 
     const signup = signupResult.rows[0];
 
-    // Get event details for response
-    const eventResult = await query(
+    // Get event details for response (still within transaction)
+    const eventResult = await client.query(
       `SELECT ve.title, ve.event_date, vl.title as role_title
        FROM volunteer_events ve
        JOIN volunteer_lists vl ON vl.event_id = ve.id
        WHERE vl.id = $1`,
       [targetListId]
     );
+
+    // Commit the transaction
+    await client.query('COMMIT');
 
     const eventInfo = eventResult.rows[0];
 
@@ -122,8 +131,29 @@ export async function POST(
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
+    // Rollback on any error
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackError) {
+      // Ignore rollback errors
+    }
+
+    // Handle serialization failures (concurrent transaction conflict)
+    if (error.code === '40001') {
+      return NextResponse.json(
+        {
+          error: 'Sorry, this spot was just taken! Please select another date.',
+          code: 'SLOT_TAKEN',
+        },
+        { status: 409 }
+      );
+    }
+
     console.error('Error registering volunteer:', error);
     return NextResponse.json({ error: 'Failed to sign up' }, { status: 500 });
+  } finally {
+    // Always release the client back to the pool
+    client.release();
   }
 }
