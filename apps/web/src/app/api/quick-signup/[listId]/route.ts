@@ -43,7 +43,8 @@ export async function GET(
     const signupCount = parseInt(list.signup_count) || 0;
     const isFull = list.max_slots ? signupCount >= list.max_slots : false;
 
-    // Get available dates (sibling events from same template) with availability info
+    // Get ALL dates (sibling events from same template) with this role's availability
+    // AND count of other available roles for each date
     let availableDates: any[] = [];
     if (list.template_id) {
       const datesResult = await query(
@@ -55,7 +56,17 @@ export async function GET(
           vl.id as list_id,
           vl.max_slots,
           vl.is_locked,
-          COUNT(vs.id)::int as signup_count
+          COUNT(vs.id)::int as signup_count,
+          -- Count other roles with availability on this date
+          (SELECT COUNT(*) FROM volunteer_lists vl2
+           LEFT JOIN volunteer_signups vs2 ON vs2.list_id = vl2.id
+           WHERE vl2.event_id = ve.id 
+             AND vl2.id != vl.id 
+             AND vl2.is_locked = false
+           GROUP BY vl2.event_id
+           HAVING COUNT(*) > 0 
+             AND SUM(CASE WHEN vl2.max_slots IS NULL OR (SELECT COUNT(*) FROM volunteer_signups WHERE list_id = vl2.id) < vl2.max_slots THEN 1 ELSE 0 END) > 0
+          )::int as other_roles_available
          FROM volunteer_events ve
          JOIN volunteer_lists vl ON vl.event_id = ve.id AND vl.title = $2
          LEFT JOIN volunteer_signups vs ON vs.list_id = vl.id
@@ -68,13 +79,49 @@ export async function GET(
          LIMIT 52`,
         [list.template_id, list.title]
       );
+
+      // For each date, also get the list of other available roles
+      const eventIds = datesResult.rows.map((r: any) => r.id);
+      const otherRolesByEvent: Record<number, any[]> = {};
+
+      if (eventIds.length > 0) {
+        const otherRolesResult = await query(
+          `SELECT 
+            vl.event_id,
+            vl.id as list_id,
+            vl.title,
+            vl.max_slots,
+            COUNT(vs.id)::int as signup_count
+           FROM volunteer_lists vl
+           LEFT JOIN volunteer_signups vs ON vs.list_id = vl.id
+           WHERE vl.event_id = ANY($1)
+             AND vl.title != $2
+             AND vl.is_locked = false
+           GROUP BY vl.id
+           HAVING vl.max_slots IS NULL OR COUNT(vs.id) < vl.max_slots
+           ORDER BY vl.title`,
+          [eventIds, list.title]
+        );
+
+        for (const row of otherRolesResult.rows) {
+          if (!otherRolesByEvent[row.event_id]) {
+            otherRolesByEvent[row.event_id] = [];
+          }
+          otherRolesByEvent[row.event_id].push({
+            list_id: row.list_id,
+            title: row.title,
+            spots_remaining: row.max_slots ? Math.max(0, row.max_slots - row.signup_count) : null,
+          });
+        }
+      }
+
       availableDates = datesResult.rows.map((row: any) => {
-        // Format date as YYYY-MM-DD string for consistent frontend parsing
         let eventDateStr = null;
         if (row.event_date) {
           const d = new Date(row.event_date);
           eventDateStr = d.toISOString().split('T')[0];
         }
+        const isFull = row.max_slots ? row.signup_count >= row.max_slots : false;
         return {
           id: row.id,
           title: row.title,
@@ -84,17 +131,44 @@ export async function GET(
           max_slots: row.max_slots,
           signup_count: row.signup_count,
           spots_remaining: row.max_slots ? Math.max(0, row.max_slots - row.signup_count) : null,
-          is_full: row.max_slots ? row.signup_count >= row.max_slots : false,
+          is_full: isFull,
           is_locked: row.is_locked,
+          // NEW: other roles available on this date (only if this role is full/locked)
+          other_roles: isFull || row.is_locked ? (otherRolesByEvent[row.id] || []).slice(0, 3) : [],
         };
       });
     } else {
-      // Just return the current event with availability
+      // Standalone event - get other roles for this event
       let eventDateStr = null;
       if (list.event_date) {
         const d = new Date(list.event_date);
         eventDateStr = d.toISOString().split('T')[0];
       }
+
+      const otherRolesResult = await query(
+        `SELECT 
+          vl.id as list_id,
+          vl.title,
+          vl.max_slots,
+          COUNT(vs.id)::int as signup_count
+         FROM volunteer_lists vl
+         LEFT JOIN volunteer_signups vs ON vs.list_id = vl.id
+         WHERE vl.event_id = $1
+           AND vl.id != $2
+           AND vl.is_locked = false
+         GROUP BY vl.id
+         HAVING vl.max_slots IS NULL OR COUNT(vs.id) < vl.max_slots
+         ORDER BY vl.title
+         LIMIT 3`,
+        [list.event_id, list.id]
+      );
+
+      const otherRoles = otherRolesResult.rows.map((r: any) => ({
+        list_id: r.list_id,
+        title: r.title,
+        spots_remaining: r.max_slots ? Math.max(0, r.max_slots - r.signup_count) : null,
+      }));
+
       availableDates = [
         {
           id: list.event_id,
@@ -107,6 +181,7 @@ export async function GET(
           spots_remaining: list.max_slots ? Math.max(0, list.max_slots - signupCount) : null,
           is_full: isFull,
           is_locked: list.is_locked,
+          other_roles: isFull || list.is_locked ? otherRoles : [],
         },
       ];
     }

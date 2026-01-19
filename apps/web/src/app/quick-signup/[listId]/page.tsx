@@ -4,6 +4,12 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 
+interface DateOtherRole {
+  list_id: number;
+  title: string;
+  spots_remaining: number | null;
+}
+
 interface AvailableDate {
   id: number;
   title: string;
@@ -15,6 +21,7 @@ interface AvailableDate {
   spots_remaining: number | null;
   is_full: boolean;
   is_locked: boolean;
+  other_roles?: DateOtherRole[];
 }
 
 interface RoleInfo {
@@ -615,10 +622,11 @@ export default function QuickSignupPage() {
                         </h3>
                       </div>
 
-                      {/* Horizontal scroll of dates - like Disney character sections */}
+                      {/* Horizontal scroll of dates */}
                       <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
                         {dates.map((date) => {
-                          const isDisabled = date.is_full || date.is_locked;
+                          const hasOtherRoles = date.other_roles && date.other_roles.length > 0;
+                          const isThisRoleFull = date.is_full || date.is_locked;
                           const isSelected = selectedDate === date.id;
                           const eventDate = new Date(date.event_date + 'T00:00:00');
                           const dayName = eventDate.toLocaleDateString('en-US', {
@@ -626,71 +634,94 @@ export default function QuickSignupPage() {
                           });
                           const dayNum = eventDate.getDate();
 
+                          // If this role is full but other roles available, show as "other roles" card
+                          if (isThisRoleFull && hasOtherRoles) {
+                            return (
+                              <div
+                                key={date.id}
+                                className="flex-shrink-0 w-24 p-2 rounded-2xl text-center border-2 border-amber-200 bg-amber-50"
+                              >
+                                <div className="text-xs font-bold text-amber-600 uppercase">
+                                  {dayName}
+                                </div>
+                                <div className="text-xl font-bold text-gray-700">{dayNum}</div>
+                                <div className="text-xs text-amber-600 font-medium">
+                                  {roleInfo?.title} full
+                                </div>
+                                <div className="mt-1 space-y-1">
+                                  {date.other_roles!.slice(0, 2).map((role) => (
+                                    <button
+                                      key={role.list_id}
+                                      type="button"
+                                      onClick={() => {
+                                        window.location.href = `/quick-signup/${role.list_id}`;
+                                      }}
+                                      className="w-full text-xs px-1 py-0.5 bg-amber-500 text-white rounded hover:bg-amber-600 truncate"
+                                    >
+                                      {role.title}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          // Completely locked/full with no alternatives
+                          if (isThisRoleFull) {
+                            return (
+                              <div
+                                key={date.id}
+                                className="flex-shrink-0 w-20 p-3 rounded-2xl text-center border-2 border-gray-100 bg-gray-50 opacity-50"
+                              >
+                                <div className="text-xs font-bold text-gray-400 uppercase">
+                                  {dayName}
+                                </div>
+                                <div className="text-2xl font-bold text-gray-400">{dayNum}</div>
+                                <div className="text-xs text-gray-400 font-semibold mt-1">
+                                  {date.is_locked ? 'Closed' : 'Full'}
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          // Available for this role
                           return (
                             <button
                               key={date.id}
                               type="button"
-                              disabled={isDisabled}
-                              onClick={() => !isDisabled && setSelectedDate(date.id)}
+                              onClick={() => setSelectedDate(date.id)}
                               className={`flex-shrink-0 w-20 p-3 rounded-2xl text-center transition-all relative border-2 ${
-                                isDisabled
-                                  ? 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
-                                  : isSelected
-                                    ? 'border-indigo-500 bg-indigo-600 text-white shadow-lg scale-105'
-                                    : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md'
+                                isSelected
+                                  ? 'border-indigo-500 bg-indigo-600 text-white shadow-lg scale-105'
+                                  : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md'
                               }`}
                             >
-                              {date.is_locked && (
-                                <span className="absolute -top-1 -right-1 text-xs bg-white rounded-full p-0.5">
-                                  🔒
-                                </span>
-                              )}
-
-                              {/* Day name - prominent like Disney character names */}
                               <div
                                 className={`text-xs font-bold uppercase tracking-wide ${
-                                  isSelected
-                                    ? 'text-indigo-200'
-                                    : isDisabled
-                                      ? 'text-gray-400'
-                                      : 'text-indigo-500'
+                                  isSelected ? 'text-indigo-200' : 'text-indigo-500'
                                 }`}
                               >
                                 {dayName}
                               </div>
-
-                              {/* Day number - large and memorable */}
                               <div
                                 className={`text-2xl font-bold leading-tight ${
-                                  isSelected
-                                    ? 'text-white'
-                                    : isDisabled
-                                      ? 'text-gray-400'
-                                      : 'text-gray-900'
+                                  isSelected ? 'text-white' : 'text-gray-900'
                                 }`}
                               >
                                 {dayNum}
                               </div>
-
-                              {/* Availability badge */}
                               <div
                                 className={`text-xs font-semibold mt-1 ${
                                   isSelected
                                     ? 'text-indigo-200'
-                                    : date.is_full
-                                      ? 'text-red-500'
-                                      : date.spots_remaining !== null && date.spots_remaining <= 2
-                                        ? 'text-amber-600'
-                                        : 'text-green-600'
+                                    : date.spots_remaining !== null && date.spots_remaining <= 2
+                                      ? 'text-amber-600'
+                                      : 'text-green-600'
                                 }`}
                               >
-                                {date.is_locked
-                                  ? 'Closed'
-                                  : date.is_full
-                                    ? 'Full'
-                                    : date.spots_remaining !== null
-                                      ? `${date.spots_remaining} left`
-                                      : 'Open'}
+                                {date.spots_remaining !== null
+                                  ? `${date.spots_remaining} left`
+                                  : 'Open'}
                               </div>
                             </button>
                           );
