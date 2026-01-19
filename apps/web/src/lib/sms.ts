@@ -60,7 +60,7 @@ interface SendSMSOptions {
   message: string;
   signupId?: number;
   eventId?: number;
-  messageType?: 'confirmation' | 'reminder' | 'cancellation' | 'change';
+  messageType?: 'confirmation' | 'reminder' | 'cancellation' | 'change' | 'system';
 }
 
 interface SendSMSResult {

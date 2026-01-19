@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { sendSMS } from '@/lib/sms';
 import crypto from 'crypto';
 
 interface TextbeltReplyPayload {
@@ -44,19 +45,69 @@ function verifySignature(
 function detectIntent(message: string): string {
   const lower = message.toLowerCase().trim();
 
-  if (['yes', 'y', 'confirm', 'confirmed', 'ok', 'okay', 'sure', 'yep', 'yup'].includes(lower)) {
-    return 'confirm';
-  }
-  if (['no', 'n', 'cancel', 'cant', "can't", 'cannot', 'nope'].includes(lower)) {
-    return 'cancel';
-  }
-  if (['stop', 'unsubscribe', 'quit', 'end'].includes(lower)) {
+  if (['stop', 'stopall', 'unsubscribe', 'quit', 'end', 'cancel'].includes(lower)) {
     return 'stop';
+  }
+  if (['start', 'subscribe', 'unstop'].includes(lower)) {
+    return 'start';
   }
   if (['help', '?', 'info'].includes(lower)) {
     return 'help';
   }
+  if (['status', 'list', 'signups'].includes(lower)) {
+    return 'status';
+  }
   return 'other';
+}
+
+// Generate or get existing token for a phone number
+async function getOrCreateToken(phone: string, organizationId: number | null): Promise<string> {
+  // Check for existing valid token
+  const existing = await query(
+    `SELECT token FROM volunteer_tokens 
+     WHERE phone = $1 AND expires_at > NOW() 
+     ORDER BY created_at DESC LIMIT 1`,
+    [phone]
+  );
+
+  if (existing.rows.length > 0) {
+    return existing.rows[0].token;
+  }
+
+  // Generate new token
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  await query(
+    `INSERT INTO volunteer_tokens (phone, token, organization_id, expires_at)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (phone, organization_id) DO UPDATE SET
+       token = $2, expires_at = $4, created_at = NOW()`,
+    [phone, token, organizationId, expiresAt]
+  );
+
+  return token;
+}
+
+// Get coordinator info for a phone number
+async function getCoordinatorInfo(phone: string): Promise<{ name: string; phone: string } | null> {
+  const result = await query(
+    `SELECT DISTINCT rs.coordinator_name, rs.coordinator_phone
+     FROM volunteer_signups vs
+     JOIN volunteer_lists vl ON vs.list_id = vl.id
+     LEFT JOIN reminder_settings rs ON rs.event_id = vl.event_id OR (rs.organization_id = vl.organization_id AND rs.event_id IS NULL)
+     WHERE vs.phone = $1 AND rs.coordinator_name IS NOT NULL
+     LIMIT 1`,
+    [phone]
+  );
+
+  if (result.rows.length > 0 && result.rows[0].coordinator_name) {
+    return {
+      name: result.rows[0].coordinator_name,
+      phone: result.rows[0].coordinator_phone || '',
+    };
+  }
+  return null;
 }
 
 // POST /api/webhooks/sms-reply - Receive SMS replies from Textbelt
@@ -116,8 +167,11 @@ export async function POST(request: NextRequest) {
       ]
     );
 
-    // Handle STOP intent - opt out the user
+    // Handle intents
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://church-volunteers.vercel.app';
+
     if (detectedIntent === 'stop') {
+      // Opt out the user
       await query(
         `UPDATE volunteer_signups 
          SET sms_opted_out = true, sms_opted_out_at = NOW() 
@@ -125,6 +179,58 @@ export async function POST(request: NextRequest) {
         [fromNumber]
       );
       console.log(`🚫 User ${fromNumber} opted out of SMS`);
+
+      // Send confirmation (required by TCPA)
+      await sendSMS({
+        to: fromNumber,
+        message: "You've been unsubscribed from volunteer reminders. Reply START to resubscribe.",
+        messageType: 'system',
+      });
+    } else if (detectedIntent === 'start') {
+      // Re-subscribe the user
+      await query(
+        `UPDATE volunteer_signups 
+         SET sms_opted_out = false, sms_opted_out_at = NULL 
+         WHERE phone = $1`,
+        [fromNumber]
+      );
+      console.log(`✅ User ${fromNumber} re-subscribed to SMS`);
+
+      await sendSMS({
+        to: fromNumber,
+        message:
+          "You've been resubscribed to volunteer reminders. Reply HELP for help. Reply STOP to unsubscribe.",
+        messageType: 'system',
+      });
+    } else if (detectedIntent === 'help') {
+      // Send help message with self-service link
+      const token = await getOrCreateToken(fromNumber, null);
+      const selfServiceUrl = `${baseUrl}/volunteer/manage/${token}`;
+      const coordinator = await getCoordinatorInfo(fromNumber);
+
+      let helpMessage = `Volunteer SMS Help:\n• Manage signups: ${selfServiceUrl}\n• Reply STOP to unsubscribe`;
+      if (coordinator?.name) {
+        helpMessage += `\n• Questions? Contact ${coordinator.name}`;
+        if (coordinator.phone) helpMessage += ` at ${coordinator.phone}`;
+      }
+
+      await sendSMS({
+        to: fromNumber,
+        message: helpMessage,
+        messageType: 'system',
+      });
+      console.log(`ℹ️ Sent HELP response to ${fromNumber}`);
+    } else if (detectedIntent === 'status') {
+      // Send status with self-service link
+      const token = await getOrCreateToken(fromNumber, null);
+      const selfServiceUrl = `${baseUrl}/volunteer/manage/${token}`;
+
+      await sendSMS({
+        to: fromNumber,
+        message: `View and manage your volunteer signups: ${selfServiceUrl}\n\nReply STOP to unsubscribe.`,
+        messageType: 'system',
+      });
+      console.log(`📋 Sent STATUS response to ${fromNumber}`);
     }
 
     // Log for debugging

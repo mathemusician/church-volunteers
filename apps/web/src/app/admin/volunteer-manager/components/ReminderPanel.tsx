@@ -23,8 +23,11 @@ export function ReminderPanel({ eventId, eventTitle: _eventTitle, eventDate }: R
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [coordinatorName, setCoordinatorName] = useState('');
+  const [coordinatorPhone, setCoordinatorPhone] = useState('');
   const [messageTemplate, setMessageTemplate] = useState(
-    "Hi {name}, reminder: You're signed up for {role} at {event} on {date}. Questions? Contact your coordinator."
+    "Hi {name}, reminder: You're signed up for {role} at {event} on {date}. Questions? Text {coordinator_name} at {coordinator_phone}."
   );
 
   const fetchStats = useCallback(async () => {
@@ -41,9 +44,53 @@ export function ReminderPanel({ eventId, eventTitle: _eventTitle, eventDate }: R
     }
   }, [eventId]);
 
+  const fetchSettings = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/admin/reminder-settings?eventId=${eventId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.settings) {
+          setCoordinatorName(data.settings.coordinator_name || '');
+          setCoordinatorPhone(data.settings.coordinator_phone || '');
+          setMessageTemplate(data.settings.message_template || messageTemplate);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    }
+  }, [eventId, messageTemplate]);
+
+  const saveSettings = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/admin/reminder-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId,
+          coordinatorName,
+          coordinatorPhone,
+          messageTemplate,
+        }),
+      });
+      if (response.ok) {
+        setShowSettings(false);
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to save settings');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
-  }, [fetchStats]);
+    fetchSettings();
+  }, [fetchStats, fetchSettings]);
 
   const sendAllReminders = async () => {
     if (!stats) return;
@@ -293,30 +340,70 @@ export function ReminderPanel({ eventId, eventTitle: _eventTitle, eventDate }: R
 
       {/* Settings Panel (Collapsible) */}
       {showSettings && (
-        <div className="mt-4 pt-4 border-t border-indigo-200">
-          <h4 className="font-medium text-gray-900 mb-3">Message Template</h4>
-          <textarea
-            value={messageTemplate}
-            onChange={(e) => setMessageTemplate(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            rows={3}
-          />
-          <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
-            <span className="bg-gray-100 px-2 py-1 rounded">{'{name}'} = First name</span>
-            <span className="bg-gray-100 px-2 py-1 rounded">{'{role}'} = Role title</span>
-            <span className="bg-gray-100 px-2 py-1 rounded">{'{event}'} = Event title</span>
-            <span className="bg-gray-100 px-2 py-1 rounded">{'{date}'} = Event date</span>
+        <div className="mt-4 pt-4 border-t border-indigo-200 space-y-4">
+          {/* Coordinator Contact */}
+          <div>
+            <h4 className="font-medium text-gray-900 mb-2">Coordinator Contact</h4>
+            <p className="text-xs text-gray-500 mb-3">
+              Volunteers can text this person with questions. Shown in reminder messages.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={coordinatorName}
+                  onChange={(e) => setCoordinatorName(e.target.value)}
+                  placeholder="John Smith"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={coordinatorPhone}
+                  onChange={(e) => setCoordinatorPhone(e.target.value)}
+                  placeholder="555-123-4567"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+            </div>
           </div>
-          <div className="mt-3 flex justify-end">
+
+          {/* Message Template */}
+          <div>
+            <h4 className="font-medium text-gray-900 mb-2">Message Template</h4>
+            <textarea
+              value={messageTemplate}
+              onChange={(e) => setMessageTemplate(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              rows={4}
+            />
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
+              <span className="bg-gray-100 px-2 py-1 rounded">{'{name}'}</span>
+              <span className="bg-gray-100 px-2 py-1 rounded">{'{role}'}</span>
+              <span className="bg-gray-100 px-2 py-1 rounded">{'{event}'}</span>
+              <span className="bg-gray-100 px-2 py-1 rounded">{'{date}'}</span>
+              <span className="bg-gray-100 px-2 py-1 rounded">{'{coordinator_name}'}</span>
+              <span className="bg-gray-100 px-2 py-1 rounded">{'{coordinator_phone}'}</span>
+              <span className="bg-gray-100 px-2 py-1 rounded">{'{self_service_url}'}</span>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
             <button
-              onClick={() => {
-                // TODO: Save template to reminder_settings
-                setShowSettings(false);
-                alert('Template saved! (Note: Full settings UI coming soon)');
-              }}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+              onClick={() => setShowSettings(false)}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200"
             >
-              Save Template
+              Cancel
+            </button>
+            <button
+              onClick={saveSettings}
+              disabled={saving}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save Settings'}
             </button>
           </div>
         </div>
