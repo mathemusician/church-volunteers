@@ -41,9 +41,12 @@ export async function GET(request: NextRequest) {
     `;
     const queryParams: any[] = [];
 
+    // When filtering by eventId, include replies that either:
+    // 1. Are linked to that event, OR
+    // 2. Have no event link (system messages like STOP/START)
     if (eventId) {
       queryParams.push(eventId);
-      repliesQuery += ` AND ve.id = $${queryParams.length}`;
+      repliesQuery += ` AND (ve.id = $${queryParams.length} OR ve.id IS NULL)`;
     }
 
     if (unreadOnly) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { sendSMS } from '@/lib/sms';
+import { sendSMS, isValidPhoneNumber } from '@/lib/sms';
 
 // POST /api/volunteer/manage/[token]/cancel - Cancel a signup
 export async function POST(
@@ -63,8 +63,8 @@ export async function POST(
     // Update last used on token
     await query(`UPDATE volunteer_tokens SET last_used_at = NOW() WHERE id = $1`, [tokenData.id]);
 
-    // Notify coordinator if they have a phone number configured
-    if (signup.coordinator_phone) {
+    // Notify coordinator if they have a valid phone number configured
+    if (signup.coordinator_phone && isValidPhoneNumber(signup.coordinator_phone)) {
       const dateStr = signup.event_date
         ? new Date(signup.event_date).toLocaleDateString('en-US', {
             weekday: 'short',

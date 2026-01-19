@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 
 interface Signup {
   id: number;
@@ -32,11 +32,7 @@ export default function ManageSignupsPage({ params }: { params: Promise<{ token:
   const [showCancelModal, setShowCancelModal] = useState<Signup | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, [token]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const response = await fetch(`/api/volunteer/manage/${token}`);
       if (!response.ok) {
@@ -51,7 +47,11 @@ export default function ManageSignupsPage({ params }: { params: Promise<{ token:
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleCancel = async () => {
     if (!showCancelModal) return;
