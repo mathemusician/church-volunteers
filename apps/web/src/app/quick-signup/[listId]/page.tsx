@@ -350,25 +350,48 @@ export default function QuickSignupPage() {
     [getAvailableRolesForSelectedDate]
   );
 
-  // Handle role carousel navigation - use callback to get fresh length
-  const handlePrevRole = useCallback(() => {
-    const len = availableRolesForDate.length;
-    if (len <= 1) return;
-    setSelectedRoleIndex((prev) => (prev > 0 ? prev - 1 : len - 1));
-  }, [availableRolesForDate.length]);
+  // Navigate to a role - if it's a different role, go to that page
+  const navigateToRole = useCallback(
+    (index: number) => {
+      const roles = availableRolesForDate;
+      if (index < 0 || index >= roles.length) return;
+      const role = roles[index];
+      if (!role.is_current) {
+        // Navigate to the other role's signup page
+        window.location.href = `/quick-signup/${role.list_id}`;
+      }
+    },
+    [availableRolesForDate]
+  );
 
-  const handleNextRole = useCallback(() => {
-    const len = availableRolesForDate.length;
-    if (len <= 1) return;
-    setSelectedRoleIndex((prev) => (prev < len - 1 ? prev + 1 : 0));
-  }, [availableRolesForDate.length]);
+  // Handle role carousel navigation
+  const handlePrevRole = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const len = availableRolesForDate.length;
+      if (len <= 1) return;
+      const newIndex = selectedRoleIndex > 0 ? selectedRoleIndex - 1 : len - 1;
+      setSelectedRoleIndex(newIndex);
+      // Auto-navigate after a brief delay to show the flip
+      setTimeout(() => navigateToRole(newIndex), 300);
+    },
+    [availableRolesForDate.length, selectedRoleIndex, navigateToRole]
+  );
 
-  // Navigate to different role's signup page
-  const handleSwitchRole = (listId: number) => {
-    if (listId !== roleInfo?.id) {
-      window.location.href = `/quick-signup/${listId}`;
-    }
-  };
+  const handleNextRole = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const len = availableRolesForDate.length;
+      if (len <= 1) return;
+      const newIndex = selectedRoleIndex < len - 1 ? selectedRoleIndex + 1 : 0;
+      setSelectedRoleIndex(newIndex);
+      // Auto-navigate after a brief delay to show the flip
+      setTimeout(() => navigateToRole(newIndex), 300);
+    },
+    [availableRolesForDate.length, selectedRoleIndex, navigateToRole]
+  );
 
   // Touch handlers for swipe gestures
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -384,13 +407,18 @@ export default function QuickSignupPage() {
     const minSwipeDistance = 50;
 
     if (Math.abs(diff) > minSwipeDistance) {
+      const len = availableRolesForDate.length;
+      if (len <= 1) return;
+      let newIndex: number;
       if (diff > 0) {
         // Swiped left - go to next
-        handleNextRole();
+        newIndex = selectedRoleIndex < len - 1 ? selectedRoleIndex + 1 : 0;
       } else {
         // Swiped right - go to previous
-        handlePrevRole();
+        newIndex = selectedRoleIndex > 0 ? selectedRoleIndex - 1 : len - 1;
       }
+      setSelectedRoleIndex(newIndex);
+      setTimeout(() => navigateToRole(newIndex), 300);
     }
   };
 
@@ -669,71 +697,27 @@ export default function QuickSignupPage() {
                 style={{ transform: `translateX(-${selectedRoleIndex * 100}%)` }}
               >
                 {availableRolesForDate.map((role) => (
-                  <div key={role.list_id} className="w-full flex-shrink-0 px-10 py-4">
-                    <div
-                      className={`bg-white rounded-xl p-4 shadow-sm border-2 text-center transition-all ${
-                        role.is_current
-                          ? 'border-indigo-500 ring-2 ring-indigo-200'
-                          : 'border-gray-200'
-                      }`}
-                    >
-                      {/* Role Badge & Spots */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span
-                          className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
-                            role.is_current
-                              ? 'bg-indigo-100 text-indigo-700'
-                              : 'bg-amber-100 text-amber-700'
+                  <div key={role.list_id} className="w-full flex-shrink-0 px-10 py-3">
+                    <div className="bg-white rounded-xl p-4 shadow-sm border-2 border-indigo-500 text-center">
+                      {/* Spots remaining */}
+                      {role.spots_remaining !== null && (
+                        <div
+                          className={`text-xs font-semibold mb-2 ${
+                            role.spots_remaining <= 2 ? 'text-amber-600' : 'text-green-600'
                           }`}
                         >
-                          {role.is_current ? '✓ Current' : 'Alternative'}
-                        </span>
-                        {role.spots_remaining !== null && (
-                          <span
-                            className={`text-xs font-semibold ${
-                              role.spots_remaining <= 2 ? 'text-amber-600' : 'text-green-600'
-                            }`}
-                          >
-                            {role.spots_remaining} spot{role.spots_remaining !== 1 ? 's' : ''} left
-                          </span>
-                        )}
-                      </div>
+                          {role.spots_remaining} spot{role.spots_remaining !== 1 ? 's' : ''} left
+                        </div>
+                      )}
 
                       {/* Role Title */}
-                      <h1 className="text-lg font-bold text-gray-900 mb-1">{role.title}</h1>
-
-                      {/* Event Title */}
-                      <p className="text-sm text-gray-600">{roleInfo?.event_title}</p>
+                      <h1 className="text-xl font-bold text-gray-900">{role.title}</h1>
 
                       {/* Role Description */}
                       {role.description && (
-                        <p className="text-xs text-gray-500 mt-2 line-clamp-2">
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">
                           {role.description}
                         </p>
-                      )}
-
-                      {/* Switch Button (for non-current roles) */}
-                      {!role.is_current && (
-                        <button
-                          type="button"
-                          onClick={() => handleSwitchRole(role.list_id)}
-                          className="mt-3 py-2 px-4 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                            />
-                          </svg>
-                          Switch to this role
-                        </button>
                       )}
                     </div>
                   </div>
