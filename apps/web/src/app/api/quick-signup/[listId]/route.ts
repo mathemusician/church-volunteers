@@ -68,25 +68,38 @@ export async function GET(
          LIMIT 52`,
         [list.template_id, list.title]
       );
-      availableDates = datesResult.rows.map((row: any) => ({
-        id: row.id,
-        title: row.title,
-        event_date: row.event_date,
-        slug: row.slug,
-        list_id: row.list_id,
-        max_slots: row.max_slots,
-        signup_count: row.signup_count,
-        spots_remaining: row.max_slots ? Math.max(0, row.max_slots - row.signup_count) : null,
-        is_full: row.max_slots ? row.signup_count >= row.max_slots : false,
-        is_locked: row.is_locked,
-      }));
+      availableDates = datesResult.rows.map((row: any) => {
+        // Format date as YYYY-MM-DD string for consistent frontend parsing
+        let eventDateStr = null;
+        if (row.event_date) {
+          const d = new Date(row.event_date);
+          eventDateStr = d.toISOString().split('T')[0];
+        }
+        return {
+          id: row.id,
+          title: row.title,
+          event_date: eventDateStr,
+          slug: row.slug,
+          list_id: row.list_id,
+          max_slots: row.max_slots,
+          signup_count: row.signup_count,
+          spots_remaining: row.max_slots ? Math.max(0, row.max_slots - row.signup_count) : null,
+          is_full: row.max_slots ? row.signup_count >= row.max_slots : false,
+          is_locked: row.is_locked,
+        };
+      });
     } else {
       // Just return the current event with availability
+      let eventDateStr = null;
+      if (list.event_date) {
+        const d = new Date(list.event_date);
+        eventDateStr = d.toISOString().split('T')[0];
+      }
       availableDates = [
         {
           id: list.event_id,
           title: list.event_title,
-          event_date: list.event_date,
+          event_date: eventDateStr,
           slug: '',
           list_id: list.id,
           max_slots: list.max_slots,
@@ -98,6 +111,13 @@ export async function GET(
       ];
     }
 
+    // Format main event_date as YYYY-MM-DD string
+    let mainEventDateStr = null;
+    if (list.event_date) {
+      const d = new Date(list.event_date);
+      mainEventDateStr = d.toISOString().split('T')[0];
+    }
+
     return NextResponse.json({
       id: list.id,
       title: list.title,
@@ -107,7 +127,7 @@ export async function GET(
       is_full: isFull,
       is_locked: list.is_locked,
       event_title: list.event_title,
-      event_date: list.event_date,
+      event_date: mainEventDateStr,
       available_dates: availableDates,
     });
   } catch (error) {

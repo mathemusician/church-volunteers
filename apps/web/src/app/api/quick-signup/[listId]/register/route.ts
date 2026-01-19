@@ -183,12 +183,26 @@ export async function POST(
       [eventInfo.role_title, eventInfo.event_id]
     );
 
-    const otherDates = otherDatesResult.rows.map((row: any) => ({
-      event_id: row.event_id,
-      list_id: row.list_id,
-      event_date: row.event_date,
-      spots_remaining: row.max_slots ? row.max_slots - row.signup_count : null,
-    }));
+    const otherDates = otherDatesResult.rows.map((row: any) => {
+      let eventDateStr = null;
+      if (row.event_date) {
+        const d = new Date(row.event_date);
+        eventDateStr = d.toISOString().split('T')[0];
+      }
+      return {
+        event_id: row.event_id,
+        list_id: row.list_id,
+        event_date: eventDateStr,
+        spots_remaining: row.max_slots ? row.max_slots - row.signup_count : null,
+      };
+    });
+
+    // Format eventDate as YYYY-MM-DD string
+    let eventDateStr = null;
+    if (eventInfo.event_date) {
+      const d = new Date(eventInfo.event_date);
+      eventDateStr = d.toISOString().split('T')[0];
+    }
 
     return NextResponse.json(
       {
@@ -198,7 +212,7 @@ export async function POST(
         role: eventInfo.role_title,
         eventId: eventInfo.event_id,
         eventTitle: eventInfo.title,
-        eventDate: eventInfo.event_date,
+        eventDate: eventDateStr,
         otherRoles,
         otherDates,
       },
