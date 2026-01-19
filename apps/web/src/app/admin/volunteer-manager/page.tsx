@@ -11,6 +11,7 @@ import { ListFormModal } from './components/ListFormModal';
 import { EventDetails } from './components/EventDetails';
 import { ListsPanel } from './components/ListsPanel';
 import { ReminderPanel } from './components/ReminderPanel';
+import { RepliesInbox } from './components/RepliesInbox';
 
 export default function VolunteerManagerPage() {
   // Hooks
@@ -260,6 +261,7 @@ export default function VolunteerManagerPage() {
                   onReorder={reorderLists}
                   onLockAll={lockAll}
                 />
+                {selectedEvent.event_date && <RepliesInbox eventId={selectedEvent.id} />}
               </div>
             ) : (
               <div className="rounded-lg bg-white p-6 shadow text-center text-gray-500">

@@ -220,13 +220,40 @@ export async function POST(request: NextRequest) {
       });
       console.log(`ℹ️ Sent HELP response to ${fromNumber}`);
     } else if (detectedIntent === 'status') {
-      // Send status with self-service link
+      // Send status with signup list and self-service link
       const token = await getOrCreateToken(fromNumber, null);
       const selfServiceUrl = `${baseUrl}/volunteer/manage/${token}`;
 
+      // Get upcoming signups for this phone
+      const signupsResult = await query(
+        `SELECT vs.name, vl.title as role, ve.title as event, ve.event_date
+         FROM volunteer_signups vs
+         JOIN volunteer_lists vl ON vs.list_id = vl.id
+         JOIN volunteer_events ve ON vl.event_id = ve.id
+         WHERE vs.phone = $1 
+           AND vs.cancelled_at IS NULL
+           AND (ve.event_date IS NULL OR ve.event_date >= CURRENT_DATE)
+         ORDER BY ve.event_date ASC NULLS LAST
+         LIMIT 5`,
+        [fromNumber]
+      );
+
+      let statusMessage = 'Your upcoming signups:\n';
+      if (signupsResult.rows.length === 0) {
+        statusMessage = 'No upcoming signups found.\n';
+      } else {
+        for (const s of signupsResult.rows) {
+          const dateStr = s.event_date
+            ? new Date(s.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            : 'TBD';
+          statusMessage += `• ${dateStr}: ${s.role}\n`;
+        }
+      }
+      statusMessage += `\nManage: ${selfServiceUrl}\nReply STOP to unsubscribe.`;
+
       await sendSMS({
         to: fromNumber,
-        message: `View and manage your volunteer signups: ${selfServiceUrl}\n\nReply STOP to unsubscribe.`,
+        message: statusMessage,
         messageType: 'system',
       });
       console.log(`📋 Sent STATUS response to ${fromNumber}`);
