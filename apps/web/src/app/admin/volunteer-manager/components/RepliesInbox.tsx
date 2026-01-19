@@ -105,6 +105,7 @@ export function RepliesInbox({ eventId }: RepliesInboxProps) {
       start: { bg: 'bg-green-100', text: 'text-green-700', label: 'Re-subscribed' },
       help: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Help' },
       status: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Status' },
+      confirm: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Confirmed' },
       other: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Message' },
     };
     const badge = badges[intent] || badges.other;

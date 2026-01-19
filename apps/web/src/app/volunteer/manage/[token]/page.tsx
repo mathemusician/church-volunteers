@@ -7,6 +7,7 @@ interface Signup {
   name: string;
   roleTitle: string;
   signedUpAt: string;
+  confirmedAt: string | null;
 }
 
 interface EventGroup {
@@ -29,6 +30,7 @@ export default function ManageSignupsPage({ params }: { params: Promise<{ token:
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const [showCancelModal, setShowCancelModal] = useState<Signup | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
@@ -79,6 +81,28 @@ export default function ManageSignupsPage({ params }: { params: Promise<{ token:
       alert('Failed to cancel signup. Please try again.');
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const handleConfirm = async (signupId: number) => {
+    setConfirmingId(signupId);
+    try {
+      const response = await fetch(`/api/volunteer/manage/${token}/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signupId }),
+      });
+
+      if (response.ok) {
+        fetchData(); // Refresh the list
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to confirm signup');
+      }
+    } catch (err) {
+      alert('Failed to confirm signup. Please try again.');
+    } finally {
+      setConfirmingId(null);
     }
   };
 
@@ -159,16 +183,34 @@ export default function ManageSignupsPage({ params }: { params: Promise<{ token:
             <div className="divide-y">
               {event.signups.map((signup) => (
                 <div key={signup.id} className="px-4 py-4 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900">{signup.roleTitle}</p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-gray-900">{signup.roleTitle}</p>
+                      {signup.confirmedAt && (
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                          ✓ Confirmed
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-500">Signed up as: {signup.name}</p>
                   </div>
-                  <button
-                    onClick={() => setShowCancelModal(signup)}
-                    className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {!signup.confirmedAt && (
+                      <button
+                        onClick={() => handleConfirm(signup.id)}
+                        disabled={confirmingId === signup.id}
+                        className="px-3 py-1.5 text-sm text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {confirmingId === signup.id ? 'Confirming...' : 'Confirm'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowCancelModal(signup)}
+                      className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

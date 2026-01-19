@@ -37,11 +37,13 @@ export async function GET(
             AND sm.created_at > NOW() - INTERVAL '7 days'
           THEN vs.id 
         END) as reminders_failed,
+        COUNT(DISTINCT CASE WHEN vs.confirmed_at IS NOT NULL THEN vs.id END) as confirmed,
+        COUNT(DISTINCT CASE WHEN vs.confirmed_at IS NULL AND vs.cancelled_at IS NULL THEN vs.id END) as unconfirmed,
         MAX(vs.last_reminder_sent_at) as last_reminder_sent_at
       FROM volunteer_signups vs
       JOIN volunteer_lists vl ON vs.list_id = vl.id
       LEFT JOIN sms_messages sm ON sm.signup_id = vs.id AND sm.message_type = 'reminder'
-      WHERE vl.event_id = $1`,
+      WHERE vl.event_id = $1 AND vs.cancelled_at IS NULL`,
       [eventId]
     );
 
@@ -54,6 +56,8 @@ export async function GET(
       remindersSent: parseInt(stats.reminders_sent) || 0,
       remindersPending: parseInt(stats.reminders_pending) || 0,
       remindersFailed: parseInt(stats.reminders_failed) || 0,
+      confirmed: parseInt(stats.confirmed) || 0,
+      unconfirmed: parseInt(stats.unconfirmed) || 0,
       lastReminderSentAt: stats.last_reminder_sent_at || null,
     });
   } catch (error) {

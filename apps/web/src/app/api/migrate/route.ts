@@ -153,6 +153,10 @@ export async function GET() {
     await query(`ALTER TABLE volunteer_signups ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP`);
     await query(`ALTER TABLE volunteer_signups ADD COLUMN IF NOT EXISTS cancel_reason TEXT`);
 
+    // 016_confirmation_tracking - Add confirmation tracking
+    await query(`ALTER TABLE volunteer_signups ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP`);
+    await query(`ALTER TABLE volunteer_signups ADD COLUMN IF NOT EXISTS confirmed_via VARCHAR(20)`); // 'sms', 'web', 'admin'
+
     return NextResponse.json({
       message: 'Migration completed successfully',
       migrations: [
@@ -161,6 +165,7 @@ export async function GET() {
         '013_invite_links',
         '014_reminder_system',
         '015_self_service_portal',
+        '016_confirmation_tracking',
       ],
     });
   } catch (error: any) {

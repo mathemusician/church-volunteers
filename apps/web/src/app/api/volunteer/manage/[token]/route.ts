@@ -38,6 +38,7 @@ export async function GET(
         vs.phone,
         vs.created_at as signed_up_at,
         vs.cancelled_at,
+        vs.confirmed_at,
         vl.id as list_id,
         vl.title as role_title,
         vl.sort_order,
@@ -87,6 +88,7 @@ export async function GET(
         name: signup.name,
         roleTitle: signup.role_title,
         signedUpAt: signup.signed_up_at,
+        confirmedAt: signup.confirmed_at,
       });
     }
 

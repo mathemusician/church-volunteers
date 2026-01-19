@@ -9,6 +9,8 @@ interface ReminderStats {
   remindersSent: number;
   remindersPending: number;
   remindersFailed: number;
+  confirmed: number;
+  unconfirmed: number;
   lastReminderSentAt: string | null;
 }
 
@@ -250,30 +252,46 @@ export function ReminderPanel({ eventId, eventTitle: _eventTitle, eventDate }: R
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div className="bg-white/60 rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-gray-900">{stats.totalVolunteers}</div>
-          <div className="text-xs text-gray-600">Total Signups</div>
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
+        <div className="bg-white/60 rounded-lg p-2 text-center">
+          <div className="text-xl font-bold text-gray-900">{stats.totalVolunteers}</div>
+          <div className="text-xs text-gray-600">Signups</div>
         </div>
-        <div className="bg-white/60 rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-indigo-600">{stats.withConsent}</div>
-          <div className="text-xs text-gray-600">Can Receive SMS</div>
+        <div className="bg-white/60 rounded-lg p-2 text-center">
+          <div className="text-xl font-bold text-indigo-600">{stats.withConsent}</div>
+          <div className="text-xs text-gray-600">SMS Ready</div>
         </div>
-        <div className="bg-white/60 rounded-lg p-3 text-center">
+        <div className="bg-white/60 rounded-lg p-2 text-center">
           <div
-            className={`text-2xl font-bold ${stats.remindersSent > 0 ? 'text-green-600' : 'text-gray-400'}`}
+            className={`text-xl font-bold ${stats.remindersSent > 0 ? 'text-blue-600' : 'text-gray-400'}`}
           >
             {stats.remindersSent}
           </div>
           <div className="text-xs text-gray-600">Reminded</div>
         </div>
-        <div className="bg-white/60 rounded-lg p-3 text-center">
+        <div className="bg-white/60 rounded-lg p-2 text-center">
           <div
-            className={`text-2xl font-bold ${stats.remindersPending > 0 ? 'text-amber-600' : 'text-gray-400'}`}
+            className={`text-xl font-bold ${stats.remindersPending > 0 ? 'text-amber-600' : 'text-gray-400'}`}
           >
             {stats.remindersPending}
           </div>
-          <div className="text-xs text-gray-600">Not Yet Sent</div>
+          <div className="text-xs text-gray-600">Pending</div>
+        </div>
+        <div className="bg-white/60 rounded-lg p-2 text-center">
+          <div
+            className={`text-xl font-bold ${stats.confirmed > 0 ? 'text-emerald-600' : 'text-gray-400'}`}
+          >
+            {stats.confirmed}
+          </div>
+          <div className="text-xs text-gray-600">Confirmed</div>
+        </div>
+        <div className="bg-white/60 rounded-lg p-2 text-center">
+          <div
+            className={`text-xl font-bold ${stats.unconfirmed > 0 ? 'text-gray-500' : 'text-gray-400'}`}
+          >
+            {stats.unconfirmed}
+          </div>
+          <div className="text-xs text-gray-600">Unconfirmed</div>
         </div>
       </div>
 

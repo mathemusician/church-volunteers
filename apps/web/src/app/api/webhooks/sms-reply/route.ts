@@ -57,6 +57,9 @@ function detectIntent(message: string): string {
   if (['status', 'list', 'signups'].includes(lower)) {
     return 'status';
   }
+  if (['yes', 'y', 'confirm', 'confirmed', 'ok', 'okay', 'sure', 'yep', 'yup'].includes(lower)) {
+    return 'confirm';
+  }
   return 'other';
 }
 
@@ -257,6 +260,51 @@ export async function POST(request: NextRequest) {
         messageType: 'system',
       });
       console.log(`📋 Sent STATUS response to ${fromNumber}`);
+    } else if (detectedIntent === 'confirm') {
+      // Confirm all upcoming signups for this phone that haven't been confirmed yet
+      const confirmResult = await query(
+        `UPDATE volunteer_signups vs
+         SET confirmed_at = NOW(), confirmed_via = 'sms'
+         FROM volunteer_lists vl
+         JOIN volunteer_events ve ON vl.event_id = ve.id
+         WHERE vs.list_id = vl.id
+           AND vs.phone = $1
+           AND vs.cancelled_at IS NULL
+           AND vs.confirmed_at IS NULL
+           AND (ve.event_date IS NULL OR ve.event_date >= CURRENT_DATE)
+         RETURNING vs.id, vl.title as role, ve.title as event, ve.event_date`,
+        [fromNumber]
+      );
+
+      if (confirmResult.rows.length === 0) {
+        // No unconfirmed signups found
+        await sendSMS({
+          to: fromNumber,
+          message:
+            "You don't have any unconfirmed signups. Reply STATUS to see your signups or HELP for assistance.",
+          messageType: 'system',
+        });
+      } else {
+        // Build confirmation message
+        let confirmMessage = `✓ Confirmed ${confirmResult.rows.length} signup${confirmResult.rows.length > 1 ? 's' : ''}:\n`;
+        for (const s of confirmResult.rows.slice(0, 3)) {
+          const dateStr = s.event_date
+            ? new Date(s.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            : 'TBD';
+          confirmMessage += `• ${dateStr}: ${s.role}\n`;
+        }
+        if (confirmResult.rows.length > 3) {
+          confirmMessage += `...and ${confirmResult.rows.length - 3} more\n`;
+        }
+        confirmMessage += '\nSee you there! Reply HELP for assistance.';
+
+        await sendSMS({
+          to: fromNumber,
+          message: confirmMessage,
+          messageType: 'system',
+        });
+      }
+      console.log(`✓ Confirmed ${confirmResult.rows.length} signups for ${fromNumber}`);
     }
 
     // Log for debugging
