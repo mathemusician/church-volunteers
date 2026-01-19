@@ -389,7 +389,7 @@ export default function QuickSignupPage() {
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Date</p>
                 <p className="font-semibold text-gray-900">
-                  {new Date(confirmation.eventDate).toLocaleDateString('en-US', {
+                  {new Date(confirmation.eventDate + 'T00:00:00').toLocaleDateString('en-US', {
                     weekday: 'short',
                     month: 'short',
                     day: 'numeric',
