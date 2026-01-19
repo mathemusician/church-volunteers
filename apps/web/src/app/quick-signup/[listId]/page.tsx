@@ -1,8 +1,21 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
+
+interface AvailableDate {
+  id: number;
+  title: string;
+  event_date: string | null;
+  slug: string;
+  list_id: number;
+  max_slots: number | null;
+  signup_count: number;
+  spots_remaining: number | null;
+  is_full: boolean;
+  is_locked: boolean;
+}
 
 interface RoleInfo {
   id: number;
@@ -14,24 +27,20 @@ interface RoleInfo {
   is_locked: boolean;
   event_title: string;
   event_date: string | null;
-  available_dates: {
-    id: number;
-    title: string;
-    event_date: string | null;
-    slug: string;
-    list_id: number;
-    max_slots: number | null;
-    signup_count: number;
-    spots_remaining: number | null;
-    is_full: boolean;
-    is_locked: boolean;
-  }[];
+  available_dates: AvailableDate[];
 }
 
 interface OtherRole {
   list_id: number;
   title: string;
   description: string | null;
+  spots_remaining: number | null;
+}
+
+interface OtherDate {
+  event_id: number;
+  list_id: number;
+  event_date: string;
   spots_remaining: number | null;
 }
 
@@ -44,6 +53,7 @@ interface SignupConfirmation {
   eventTitle: string;
   eventDate: string | null;
   otherRoles: OtherRole[];
+  otherDates?: OtherDate[];
 }
 
 export default function QuickSignupPage() {
@@ -64,6 +74,26 @@ export default function QuickSignupPage() {
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [signingUpFor, setSigningUpFor] = useState<number | null>(null);
   const [signedUpRoles, setSignedUpRoles] = useState<string[]>([]);
+  const [signedUpDates, setSignedUpDates] = useState<string[]>([]);
+
+  // Group dates by month for Disney-style hierarchical display
+  const datesByMonth = useMemo(() => {
+    if (!roleInfo?.available_dates) return {};
+    return roleInfo.available_dates.reduce(
+      (acc, date) => {
+        if (!date.event_date) return acc;
+        const d = new Date(date.event_date + 'T00:00:00');
+        const monthKey = d.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+        });
+        if (!acc[monthKey]) acc[monthKey] = [];
+        acc[monthKey].push(date);
+        return acc;
+      },
+      {} as Record<string, AvailableDate[]>
+    );
+  }, [roleInfo?.available_dates]);
 
   const fetchRoleInfo = useCallback(
     async (silent = false) => {
@@ -218,7 +248,36 @@ export default function QuickSignupPage() {
     setConfirmation(null);
     setError(null);
     setSignedUpRoles([]);
+    setSignedUpDates([]);
     fetchRoleInfo();
+  };
+
+  const handleSignupForDate = async (otherListId: number, eventDate: string) => {
+    if (!confirmation) return;
+
+    setSigningUpFor(otherListId);
+    try {
+      const response = await fetch(`/api/quick-signup/${otherListId}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: confirmation.name,
+          phone: confirmation.phone || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to sign up');
+      }
+
+      setSignedUpDates((prev) => [...prev, eventDate]);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSigningUpFor(null);
+    }
   };
 
   const handleSignupForRole = async (otherListId: number, roleTitle: string) => {
@@ -346,6 +405,58 @@ export default function QuickSignupPage() {
               <QRCodeSVG value={qrData} size={140} level="M" />
             </div>
           </div>
+
+          {/* Cross-sell: Other dates for same role - Disney-style horizontal scroll */}
+          {confirmation.otherDates && confirmation.otherDates.length > 0 && (
+            <div className="mb-5 text-left">
+              <p className="text-sm font-medium text-gray-700 mb-2">Sign up for another week?</p>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2">
+                {confirmation.otherDates
+                  .filter((d) => !signedUpDates.includes(d.event_date))
+                  .map((dateOption) => {
+                    const eventDate = new Date(dateOption.event_date + 'T00:00:00');
+                    const dayName = eventDate.toLocaleDateString('en-US', { weekday: 'short' });
+                    const dayNum = eventDate.getDate();
+                    const monthName = eventDate.toLocaleDateString('en-US', { month: 'short' });
+
+                    return (
+                      <button
+                        key={dateOption.list_id}
+                        onClick={() =>
+                          handleSignupForDate(dateOption.list_id, dateOption.event_date)
+                        }
+                        disabled={signingUpFor === dateOption.list_id}
+                        className="flex-shrink-0 w-20 p-3 bg-emerald-50 border-2 border-emerald-200 rounded-2xl text-center hover:border-emerald-400 hover:shadow-md transition-all disabled:opacity-50"
+                      >
+                        <div className="text-xs font-bold text-emerald-600 uppercase">
+                          {dayName}
+                        </div>
+                        <div className="text-xl font-bold text-gray-900">{dayNum}</div>
+                        <div className="text-xs text-gray-500">{monthName}</div>
+                        {dateOption.spots_remaining !== null && (
+                          <div className="text-xs font-semibold text-emerald-600 mt-1">
+                            {dateOption.spots_remaining} left
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+              </div>
+              {signedUpDates.length > 0 && (
+                <p className="text-xs text-green-600 mt-2">
+                  ✓ Also signed up for:{' '}
+                  {signedUpDates
+                    .map((d) =>
+                      new Date(d + 'T00:00:00').toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    )
+                    .join(', ')}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Cross-sell: Other roles needed */}
           {confirmation.otherRoles && confirmation.otherRoles.length > 0 && (
@@ -480,11 +591,11 @@ export default function QuickSignupPage() {
               />
             </div>
 
-            {/* Date Selection - always show */}
-            {roleInfo?.available_dates && roleInfo.available_dates.length > 0 && (
+            {/* Disney-style Date Selection - grouped by month with horizontal scroll */}
+            {Object.keys(datesByMonth).length > 0 && (
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">Select Date</label>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-gray-700">Pick Your Date</label>
                   <span className="text-xs text-gray-400">
                     Updated{' '}
                     {lastRefresh.toLocaleTimeString('en-US', {
@@ -493,68 +604,100 @@ export default function QuickSignupPage() {
                     })}
                   </span>
                 </div>
-                <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 p-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    {roleInfo.available_dates.map((date) => {
-                      const isDisabled = date.is_full || date.is_locked;
-                      const isSelected = selectedDate === date.id;
 
-                      return (
-                        <button
-                          key={date.id}
-                          type="button"
-                          disabled={isDisabled}
-                          onClick={() => !isDisabled && setSelectedDate(date.id)}
-                          className={`p-3 border-2 rounded-xl text-center transition-all relative ${
-                            isDisabled
-                              ? 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
-                              : isSelected
-                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                : 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50'
-                          }`}
-                        >
-                          {date.is_locked && (
-                            <span className="absolute top-1 right-1 text-xs">🔒</span>
-                          )}
-                          <div className="font-semibold text-sm">
-                            {date.event_date
-                              ? new Date(date.event_date).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                })
-                              : date.title}
-                          </div>
-                          {date.event_date && (
-                            <div
-                              className={`text-xs ${isDisabled ? 'text-gray-400' : 'text-gray-500'}`}
+                <div className="space-y-4 max-h-80 overflow-y-auto">
+                  {Object.entries(datesByMonth).map(([month, dates]) => (
+                    <div key={month}>
+                      {/* Month header - like Disney's Heroes/Villains sections */}
+                      <div className="sticky top-0 bg-white/95 backdrop-blur-sm py-1 mb-2 z-10">
+                        <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider">
+                          {month}
+                        </h3>
+                      </div>
+
+                      {/* Horizontal scroll of dates - like Disney character sections */}
+                      <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                        {dates.map((date) => {
+                          const isDisabled = date.is_full || date.is_locked;
+                          const isSelected = selectedDate === date.id;
+                          const eventDate = new Date(date.event_date + 'T00:00:00');
+                          const dayName = eventDate.toLocaleDateString('en-US', {
+                            weekday: 'short',
+                          });
+                          const dayNum = eventDate.getDate();
+
+                          return (
+                            <button
+                              key={date.id}
+                              type="button"
+                              disabled={isDisabled}
+                              onClick={() => !isDisabled && setSelectedDate(date.id)}
+                              className={`flex-shrink-0 w-20 p-3 rounded-2xl text-center transition-all relative border-2 ${
+                                isDisabled
+                                  ? 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
+                                  : isSelected
+                                    ? 'border-indigo-500 bg-indigo-600 text-white shadow-lg scale-105'
+                                    : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md'
+                              }`}
                             >
-                              {new Date(date.event_date).toLocaleDateString('en-US', {
-                                weekday: 'short',
-                              })}
-                            </div>
-                          )}
-                          {/* Availability indicator */}
-                          <div
-                            className={`text-xs mt-1 font-medium ${
-                              date.is_full
-                                ? 'text-red-500'
-                                : date.spots_remaining !== null && date.spots_remaining <= 2
-                                  ? 'text-amber-600'
-                                  : 'text-green-600'
-                            }`}
-                          >
-                            {date.is_locked
-                              ? 'Closed'
-                              : date.is_full
-                                ? 'Full'
-                                : date.spots_remaining !== null
-                                  ? `${date.spots_remaining} spot${date.spots_remaining !== 1 ? 's' : ''}`
-                                  : 'Open'}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                              {date.is_locked && (
+                                <span className="absolute -top-1 -right-1 text-xs bg-white rounded-full p-0.5">
+                                  🔒
+                                </span>
+                              )}
+
+                              {/* Day name - prominent like Disney character names */}
+                              <div
+                                className={`text-xs font-bold uppercase tracking-wide ${
+                                  isSelected
+                                    ? 'text-indigo-200'
+                                    : isDisabled
+                                      ? 'text-gray-400'
+                                      : 'text-indigo-500'
+                                }`}
+                              >
+                                {dayName}
+                              </div>
+
+                              {/* Day number - large and memorable */}
+                              <div
+                                className={`text-2xl font-bold leading-tight ${
+                                  isSelected
+                                    ? 'text-white'
+                                    : isDisabled
+                                      ? 'text-gray-400'
+                                      : 'text-gray-900'
+                                }`}
+                              >
+                                {dayNum}
+                              </div>
+
+                              {/* Availability badge */}
+                              <div
+                                className={`text-xs font-semibold mt-1 ${
+                                  isSelected
+                                    ? 'text-indigo-200'
+                                    : date.is_full
+                                      ? 'text-red-500'
+                                      : date.spots_remaining !== null && date.spots_remaining <= 2
+                                        ? 'text-amber-600'
+                                        : 'text-green-600'
+                                }`}
+                              >
+                                {date.is_locked
+                                  ? 'Closed'
+                                  : date.is_full
+                                    ? 'Full'
+                                    : date.spots_remaining !== null
+                                      ? `${date.spots_remaining} left`
+                                      : 'Open'}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

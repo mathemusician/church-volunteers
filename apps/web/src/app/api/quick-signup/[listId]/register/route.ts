@@ -158,6 +158,38 @@ export async function POST(
       spots_remaining: row.max_slots ? row.max_slots - row.signup_count : null,
     }));
 
+    // Get other available dates for the same role (for cross-sell on confirmation)
+    // Find sibling events from the same template with the same role title
+    const otherDatesResult = await client.query(
+      `SELECT 
+        ve.id as event_id,
+        ve.event_date,
+        vl.id as list_id,
+        vl.max_slots,
+        COUNT(vs.id)::int as signup_count
+       FROM volunteer_events ve
+       JOIN volunteer_lists vl ON vl.event_id = ve.id AND vl.title = $1
+       LEFT JOIN volunteer_signups vs ON vs.list_id = vl.id
+       WHERE ve.template_id = (SELECT template_id FROM volunteer_events WHERE id = $2)
+         AND ve.id != $2
+         AND ve.is_template = false
+         AND ve.is_active = true
+         AND ve.event_date >= CURRENT_DATE
+         AND vl.is_locked = false
+       GROUP BY ve.id, vl.id
+       HAVING vl.max_slots IS NULL OR COUNT(vs.id) < vl.max_slots
+       ORDER BY ve.event_date ASC
+       LIMIT 3`,
+      [eventInfo.role_title, eventInfo.event_id]
+    );
+
+    const otherDates = otherDatesResult.rows.map((row: any) => ({
+      event_id: row.event_id,
+      list_id: row.list_id,
+      event_date: row.event_date,
+      spots_remaining: row.max_slots ? row.max_slots - row.signup_count : null,
+    }));
+
     return NextResponse.json(
       {
         id: signup.id,
@@ -168,6 +200,7 @@ export async function POST(
         eventTitle: eventInfo.title,
         eventDate: eventInfo.event_date,
         otherRoles,
+        otherDates,
       },
       { status: 201 }
     );
