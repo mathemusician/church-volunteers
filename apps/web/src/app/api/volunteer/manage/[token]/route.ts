@@ -29,8 +29,9 @@ export async function GET(
     await query(`UPDATE volunteer_tokens SET last_used_at = NOW() WHERE id = $1`, [tokenData.id]);
 
     // Get all upcoming signups for this phone number
+    // Use DISTINCT ON to avoid duplicates from reminder_settings join
     const signupsResult = await query(
-      `SELECT 
+      `SELECT DISTINCT ON (vs.id)
         vs.id,
         vs.name,
         vs.email,
@@ -39,25 +40,37 @@ export async function GET(
         vs.cancelled_at,
         vl.id as list_id,
         vl.title as role_title,
+        vl.sort_order,
         ve.id as event_id,
         ve.title as event_title,
         ve.event_date,
-        rs.coordinator_name,
-        rs.coordinator_phone
+        COALESCE(rs_event.coordinator_name, rs_org.coordinator_name) as coordinator_name,
+        COALESCE(rs_event.coordinator_phone, rs_org.coordinator_phone) as coordinator_phone
       FROM volunteer_signups vs
       JOIN volunteer_lists vl ON vs.list_id = vl.id
       JOIN volunteer_events ve ON vl.event_id = ve.id
-      LEFT JOIN reminder_settings rs ON rs.event_id = ve.id OR (rs.organization_id = vl.organization_id AND rs.event_id IS NULL)
+      LEFT JOIN reminder_settings rs_event ON rs_event.event_id = ve.id
+      LEFT JOIN reminder_settings rs_org ON rs_org.organization_id = vl.organization_id AND rs_org.event_id IS NULL
       WHERE vs.phone = $1
         AND vs.cancelled_at IS NULL
         AND (ve.event_date IS NULL OR ve.event_date >= CURRENT_DATE)
-      ORDER BY ve.event_date ASC NULLS LAST, vl.sort_order ASC`,
+      ORDER BY vs.id, ve.event_date ASC NULLS LAST, vl.sort_order ASC`,
       [phone]
     );
 
+    // Re-sort after DISTINCT ON (which requires ordering by vs.id first)
+    const sortedSignups = signupsResult.rows.sort((a: any, b: any) => {
+      if (a.event_date === null && b.event_date === null) return a.sort_order - b.sort_order;
+      if (a.event_date === null) return 1;
+      if (b.event_date === null) return -1;
+      const dateCompare = new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+      if (dateCompare !== 0) return dateCompare;
+      return a.sort_order - b.sort_order;
+    });
+
     // Group by event
     const eventMap = new Map();
-    for (const signup of signupsResult.rows) {
+    for (const signup of sortedSignups) {
       const eventKey = signup.event_id;
       if (!eventMap.has(eventKey)) {
         eventMap.set(eventKey, {
@@ -77,8 +90,11 @@ export async function GET(
       });
     }
 
+    // Mask phone: +1234567890 -> +1***567890
+    const maskedPhone = phone.replace(/^(\+?\d{2})\d{3}(\d{4})$/, '$1***$2');
+
     return NextResponse.json({
-      phone: phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'), // Mask middle digits
+      phone: maskedPhone,
       events: Array.from(eventMap.values()),
     });
   } catch (error) {

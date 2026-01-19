@@ -130,6 +130,8 @@ export async function GET() {
     );
 
     // 015_self_service_portal - Volunteer tokens for magic links
+    // Note: No unique constraint on (phone, org_id) since org_id can be NULL
+    // Tokens are unique by token column only
     await query(`
       CREATE TABLE IF NOT EXISTS volunteer_tokens (
         id SERIAL PRIMARY KEY,

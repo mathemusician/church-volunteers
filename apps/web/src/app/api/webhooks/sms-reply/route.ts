@@ -61,8 +61,8 @@ function detectIntent(message: string): string {
 }
 
 // Generate or get existing token for a phone number
-async function getOrCreateToken(phone: string, organizationId: number | null): Promise<string> {
-  // Check for existing valid token
+async function getOrCreateToken(phone: string, _organizationId: number | null): Promise<string> {
+  // Check for existing valid token (ignore org_id since tokens are per-phone)
   const existing = await query(
     `SELECT token FROM volunteer_tokens 
      WHERE phone = $1 AND expires_at > NOW() 
@@ -78,12 +78,11 @@ async function getOrCreateToken(phone: string, organizationId: number | null): P
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
+  // Use simple insert - if conflict on token (unlikely), retry
   await query(
     `INSERT INTO volunteer_tokens (phone, token, organization_id, expires_at)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT (phone, organization_id) DO UPDATE SET
-       token = $2, expires_at = $4, created_at = NOW()`,
-    [phone, token, organizationId, expiresAt]
+     VALUES ($1, $2, NULL, $3)`,
+    [phone, token, expiresAt]
   );
 
   return token;

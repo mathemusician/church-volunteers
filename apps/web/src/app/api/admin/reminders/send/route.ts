@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
           })
         : 'TBD';
 
-      // Get or create token for self-service URL
+      // Get or create token for self-service URL (use cache to avoid repeated DB calls)
       let token = tokenCache[signup.phone];
       if (!token) {
         // Check for existing valid token
@@ -129,8 +129,7 @@ export async function POST(request: NextRequest) {
           const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
           await query(
             `INSERT INTO volunteer_tokens (phone, token, organization_id, expires_at)
-             VALUES ($1, $2, NULL, $3)
-             ON CONFLICT DO NOTHING`,
+             VALUES ($1, $2, NULL, $3)`,
             [signup.phone, token, expiresAt]
           );
         }

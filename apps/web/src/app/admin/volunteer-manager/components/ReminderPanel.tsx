@@ -52,13 +52,15 @@ export function ReminderPanel({ eventId, eventTitle: _eventTitle, eventDate }: R
         if (data.settings) {
           setCoordinatorName(data.settings.coordinator_name || '');
           setCoordinatorPhone(data.settings.coordinator_phone || '');
-          setMessageTemplate(data.settings.message_template || messageTemplate);
+          if (data.settings.message_template) {
+            setMessageTemplate(data.settings.message_template);
+          }
         }
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
     }
-  }, [eventId, messageTemplate]);
+  }, [eventId]); // Remove messageTemplate from deps to prevent infinite loop
 
   const saveSettings = async () => {
     setSaving(true);
