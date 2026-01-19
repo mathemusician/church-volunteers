@@ -85,25 +85,29 @@ export async function GET(
       const otherRolesByEvent: Record<number, any[]> = {};
 
       if (eventIds.length > 0) {
+        // Get ALL other roles for these events (not just available ones) for debugging
         const otherRolesResult = await query(
           `SELECT 
             vl.event_id,
             vl.id as list_id,
             vl.title,
             vl.max_slots,
+            vl.is_locked,
             COUNT(vs.id)::int as signup_count
            FROM volunteer_lists vl
            LEFT JOIN volunteer_signups vs ON vs.list_id = vl.id
            WHERE vl.event_id = ANY($1)
              AND vl.title != $2
-             AND vl.is_locked = false
            GROUP BY vl.id
-           HAVING vl.max_slots IS NULL OR COUNT(vs.id) < vl.max_slots
            ORDER BY vl.title`,
           [eventIds, list.title]
         );
 
+        // Filter to only available roles (not full, not locked)
         for (const row of otherRolesResult.rows) {
+          const isFull = row.max_slots ? row.signup_count >= row.max_slots : false;
+          if (row.is_locked || isFull) continue;
+
           if (!otherRolesByEvent[row.event_id]) {
             otherRolesByEvent[row.event_id] = [];
           }
