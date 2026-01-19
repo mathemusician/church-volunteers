@@ -46,10 +46,9 @@ export function ListsPanel({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const dragOverIndexRef = useRef<number | null>(null);
   const [qrModalList, setQrModalList] = useState<List | null>(null);
-  const [expandedListId, setExpandedListId] = useState<number | null>(null);
+  const [expandedListIds, setExpandedListIds] = useState<Set<number>>(new Set());
   const [signups, setSignups] = useState<Record<number, Signup[]>>({});
   const [loadingSignups, setLoadingSignups] = useState<Record<number, boolean>>({});
-  const [sendingReminders, setSendingReminders] = useState<Record<number, boolean>>({});
 
   // Fetch signups when a list is expanded
   const fetchSignups = async (listId: number) => {
@@ -67,44 +66,40 @@ export function ListsPanel({
     }
   };
 
-  // Send reminders for a list
-  const sendReminders = async (listId: number) => {
-    if (!confirm('Send reminder SMS to all eligible volunteers in this role?')) return;
-
-    setSendingReminders((prev) => ({ ...prev, [listId]: true }));
-    try {
-      const response = await fetch('/api/admin/reminders/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listId }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        alert(`Reminders: ${data.sent} sent, ${data.skipped} skipped, ${data.failed} failed`);
-        // Refresh signups to show updated status
-        fetchSignups(listId);
-      } else {
-        alert(data.error || 'Failed to send reminders');
-      }
-    } catch (error) {
-      console.error('Error sending reminders:', error);
-      alert('Failed to send reminders');
-    } finally {
-      setSendingReminders((prev) => ({ ...prev, [listId]: false }));
-    }
-  };
-
-  // Toggle expand/collapse
+  // Toggle expand/collapse for single list
   const toggleExpand = (listId: number) => {
-    if (expandedListId === listId) {
-      setExpandedListId(null);
-    } else {
-      setExpandedListId(listId);
-      if (!signups[listId]) {
-        fetchSignups(listId);
+    setExpandedListIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(listId)) {
+        next.delete(listId);
+      } else {
+        next.add(listId);
+        if (!signups[listId]) {
+          fetchSignups(listId);
+        }
       }
-    }
+      return next;
+    });
   };
+
+  // Expand all lists
+  const expandAll = () => {
+    const allIds = new Set(lists.map((l) => l.id));
+    setExpandedListIds(allIds);
+    // Fetch signups for any lists we don't have yet
+    lists.forEach((list) => {
+      if (!signups[list.id]) {
+        fetchSignups(list.id);
+      }
+    });
+  };
+
+  // Collapse all lists
+  const collapseAll = () => {
+    setExpandedListIds(new Set());
+  };
+
+  const someExpanded = expandedListIds.size > 0;
 
   // Get reminder status icon and color
   const getReminderStatusDisplay = (status: Signup['reminder_status']) => {
@@ -213,16 +208,24 @@ export function ListsPanel({
       <div className="flex justify-between items-center mb-4">
         <div className="flex gap-2">
           {lists.length > 0 && (
-            <button
-              onClick={() => onLockAll(!allLocked)}
-              className={`rounded-md px-3 py-2 text-sm font-semibold ${
-                allLocked
-                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                  : 'bg-red-100 text-red-700 hover:bg-red-200'
-              }`}
-            >
-              {allLocked ? '🔓 Unlock All' : '🔒 Lock All'}
-            </button>
+            <>
+              <button
+                onClick={() => onLockAll(!allLocked)}
+                className={`rounded-md px-3 py-2 text-sm font-semibold ${
+                  allLocked
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                }`}
+              >
+                {allLocked ? '🔓 Unlock All' : '🔒 Lock All'}
+              </button>
+              <button
+                onClick={someExpanded ? collapseAll : expandAll}
+                className="rounded-md px-3 py-2 text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+              >
+                {someExpanded ? '⬆️ Collapse All' : '⬇️ Expand All'}
+              </button>
+            </>
           )}
         </div>
         <button
@@ -236,10 +239,9 @@ export function ListsPanel({
       <div className="space-y-4">
         {displayLists.map((list) => {
           const originalIndex = lists.findIndex((l) => l.id === list.id);
-          const isExpanded = expandedListId === list.id;
+          const isExpanded = expandedListIds.has(list.id);
           const listSignups = signups[list.id] || [];
           const isLoadingSignups = loadingSignups[list.id];
-          const isSendingReminders = sendingReminders[list.id];
 
           // Count reminder statuses
           const reminderStats = listSignups.reduce(
@@ -484,42 +486,26 @@ export function ListsPanel({
                         })}
                       </div>
 
-                      {/* Actions */}
-                      <div className="mt-4 flex gap-2">
-                        <button
-                          onClick={() => sendReminders(list.id)}
-                          disabled={isSendingReminders}
-                          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                        >
-                          {isSendingReminders ? (
-                            <>
-                              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                                <circle
-                                  className="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="currentColor"
-                                  strokeWidth="4"
-                                  fill="none"
-                                />
-                                <path
-                                  className="opacity-75"
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                />
-                              </svg>
-                              Sending...
-                            </>
-                          ) : (
-                            <>📤 Send Reminders</>
-                          )}
-                        </button>
+                      {/* Refresh button */}
+                      <div className="mt-3 pt-3 border-t border-gray-200 flex justify-end">
                         <button
                           onClick={() => fetchSignups(list.id)}
-                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium"
+                          className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
                         >
-                          🔄 Refresh
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                            />
+                          </svg>
+                          Refresh
                         </button>
                       </div>
                     </>

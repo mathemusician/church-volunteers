@@ -10,6 +10,7 @@ import { EventFormModal } from './components/EventFormModal';
 import { ListFormModal } from './components/ListFormModal';
 import { EventDetails } from './components/EventDetails';
 import { ListsPanel } from './components/ListsPanel';
+import { ReminderPanel } from './components/ReminderPanel';
 
 export default function VolunteerManagerPage() {
   // Hooks
@@ -243,6 +244,13 @@ export default function VolunteerManagerPage() {
                   onDelete={handleDeleteEvent}
                   onGenerateSundays={selectedEvent.is_template ? handleGenerateSundays : undefined}
                 />
+                {selectedEvent.event_date && (
+                  <ReminderPanel
+                    eventId={selectedEvent.id}
+                    eventTitle={selectedEvent.title}
+                    eventDate={selectedEvent.event_date}
+                  />
+                )}
                 <ListsPanel
                   lists={lists}
                   onAddList={openNewList}
