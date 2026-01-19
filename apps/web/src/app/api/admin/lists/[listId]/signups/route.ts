@@ -31,6 +31,10 @@ export async function GET(
         vs.created_at as signed_up_at,
         vs.last_reminder_sent_at,
         vs.reminder_count,
+        vs.confirmed_at,
+        vs.confirmed_via,
+        vs.cancelled_at,
+        vs.cancel_reason,
         -- Get latest reminder SMS status
         (
           SELECT json_build_object(
@@ -97,6 +101,10 @@ export async function GET(
         reminder_count: signup.reminder_count || 0,
         replies: signup.replies || [],
         has_unread_replies: (signup.replies || []).some((r: any) => !r.is_read),
+        confirmed_at: signup.confirmed_at,
+        confirmed_via: signup.confirmed_via,
+        cancelled_at: signup.cancelled_at,
+        cancel_reason: signup.cancel_reason,
       };
     });
 

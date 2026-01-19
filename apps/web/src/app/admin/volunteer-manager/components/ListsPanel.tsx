@@ -22,6 +22,10 @@ interface Signup {
     detected_intent: string | null;
   }>;
   has_unread_replies: boolean;
+  confirmed_at: string | null;
+  confirmed_via: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
 }
 
 interface ListsPanelProps {
@@ -411,6 +415,16 @@ export function ListsPanel({
                                     <span className="font-medium text-gray-900">
                                       👤 {signup.name}
                                     </span>
+                                    {signup.confirmed_at && (
+                                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                                        ✓ Confirmed
+                                      </span>
+                                    )}
+                                    {signup.cancelled_at && (
+                                      <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                                        ✗ Cancelled
+                                      </span>
+                                    )}
                                     {signup.has_unread_replies && (
                                       <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
                                         💬 New reply
