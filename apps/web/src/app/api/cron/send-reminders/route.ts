@@ -36,8 +36,8 @@ export async function GET(request: NextRequest) {
       JOIN volunteer_lists vl ON vs.list_id = vl.id
       JOIN volunteer_events ve ON vl.event_id = ve.id
       WHERE vs.phone IS NOT NULL
-        AND vs.sms_consent = true
-        AND vs.sms_opted_out = false
+        AND COALESCE(vs.sms_consent, false) = true
+        AND COALESCE(vs.sms_opted_out, false) = false
         AND DATE(ve.event_date) = $1
         AND NOT EXISTS (
           SELECT 1 FROM sms_messages sm 
@@ -74,6 +74,14 @@ export async function GET(request: NextRequest) {
 
       if (smsResult.success && smsResult.error !== 'Already sent') {
         sent++;
+        // Update signup with reminder info
+        await query(
+          `UPDATE volunteer_signups 
+           SET last_reminder_sent_at = NOW(), 
+               reminder_count = COALESCE(reminder_count, 0) + 1 
+           WHERE id = $1`,
+          [reminder.signup_id]
+        ).catch((err) => console.error('Failed to update signup reminder count:', err));
       } else if (!smsResult.success) {
         failed++;
       }
