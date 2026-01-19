@@ -92,8 +92,8 @@ export async function GET(
       });
     }
 
-    // Mask phone: +1234567890 -> +1***567890
-    const maskedPhone = phone.replace(/^(\+?\d{2})\d{3}(\d{4})$/, '$1***$2');
+    // Mask phone: +12345678901 -> +1***8901 (handles E.164 format)
+    const maskedPhone = phone.replace(/^(\+?1)(\d{3})(\d{3})(\d{4})$/, '$1***$4');
 
     return NextResponse.json({
       phone: maskedPhone,

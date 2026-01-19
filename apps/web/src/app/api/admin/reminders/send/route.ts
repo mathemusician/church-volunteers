@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       JOIN volunteer_lists vl ON vs.list_id = vl.id
       JOIN volunteer_events ve ON vl.event_id = ve.id
       WHERE vs.phone IS NOT NULL
+        AND vs.cancelled_at IS NULL
         AND COALESCE(vs.sms_consent, false) = true
         AND COALESCE(vs.sms_opted_out, false) = false
     `;

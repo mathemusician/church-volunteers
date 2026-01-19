@@ -91,14 +91,18 @@ async function getOrCreateToken(phone: string, _organizationId: number | null): 
   return token;
 }
 
-// Get coordinator info for a phone number
+// Get coordinator info for a phone number (from active signups only)
 async function getCoordinatorInfo(phone: string): Promise<{ name: string; phone: string } | null> {
   const result = await query(
     `SELECT DISTINCT rs.coordinator_name, rs.coordinator_phone
      FROM volunteer_signups vs
      JOIN volunteer_lists vl ON vs.list_id = vl.id
+     JOIN volunteer_events ve ON vl.event_id = ve.id
      LEFT JOIN reminder_settings rs ON rs.event_id = vl.event_id OR (rs.organization_id = vl.organization_id AND rs.event_id IS NULL)
-     WHERE vs.phone = $1 AND rs.coordinator_name IS NOT NULL
+     WHERE vs.phone = $1 
+       AND vs.cancelled_at IS NULL
+       AND (ve.event_date IS NULL OR ve.event_date >= CURRENT_DATE)
+       AND rs.coordinator_name IS NOT NULL
      LIMIT 1`,
     [phone]
   );
