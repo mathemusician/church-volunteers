@@ -350,14 +350,18 @@ export default function QuickSignupPage() {
     [getAvailableRolesForSelectedDate]
   );
 
-  // Handle role carousel navigation
-  const handlePrevRole = () => {
-    setSelectedRoleIndex((prev) => (prev > 0 ? prev - 1 : availableRolesForDate.length - 1));
-  };
+  // Handle role carousel navigation - use callback to get fresh length
+  const handlePrevRole = useCallback(() => {
+    const len = availableRolesForDate.length;
+    if (len <= 1) return;
+    setSelectedRoleIndex((prev) => (prev > 0 ? prev - 1 : len - 1));
+  }, [availableRolesForDate.length]);
 
-  const handleNextRole = () => {
-    setSelectedRoleIndex((prev) => (prev < availableRolesForDate.length - 1 ? prev + 1 : 0));
-  };
+  const handleNextRole = useCallback(() => {
+    const len = availableRolesForDate.length;
+    if (len <= 1) return;
+    setSelectedRoleIndex((prev) => (prev < len - 1 ? prev + 1 : 0));
+  }, [availableRolesForDate.length]);
 
   // Navigate to different role's signup page
   const handleSwitchRole = (listId: number) => {
@@ -598,29 +602,190 @@ export default function QuickSignupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-full mb-3">
-            <svg
-              className="w-6 h-6 text-indigo-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        {/* Header - shows carousel if multiple roles available, otherwise static header */}
+        {selectedDate && availableRolesForDate.length > 1 ? (
+          <div className="mb-6">
+            {/* Role Carousel Header */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+                Choose Your Role
+              </span>
+              <span className="text-xs text-indigo-500 font-medium">
+                {selectedRoleIndex + 1} of {availableRolesForDate.length}
+              </span>
+            </div>
+
+            {/* Carousel Container */}
+            <div
+              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 p-1"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-              />
-            </svg>
+              {/* Navigation Arrows */}
+              <button
+                type="button"
+                onClick={handlePrevRole}
+                className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:bg-white hover:scale-110 transition-all active:scale-95"
+              >
+                <svg
+                  className="w-4 h-4 text-indigo-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={handleNextRole}
+                className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:bg-white hover:scale-110 transition-all active:scale-95"
+              >
+                <svg
+                  className="w-4 h-4 text-indigo-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+
+              {/* Cards Container */}
+              <div
+                ref={carouselRef}
+                className="flex transition-transform duration-300 ease-out"
+                style={{ transform: `translateX(-${selectedRoleIndex * 100}%)` }}
+              >
+                {availableRolesForDate.map((role) => (
+                  <div key={role.list_id} className="w-full flex-shrink-0 px-10 py-4">
+                    <div
+                      className={`bg-white rounded-xl p-4 shadow-sm border-2 text-center transition-all ${
+                        role.is_current
+                          ? 'border-indigo-500 ring-2 ring-indigo-200'
+                          : 'border-gray-200'
+                      }`}
+                    >
+                      {/* Role Badge & Spots */}
+                      <div className="flex items-center justify-between mb-2">
+                        <span
+                          className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                            role.is_current
+                              ? 'bg-indigo-100 text-indigo-700'
+                              : 'bg-amber-100 text-amber-700'
+                          }`}
+                        >
+                          {role.is_current ? '✓ Current' : 'Alternative'}
+                        </span>
+                        {role.spots_remaining !== null && (
+                          <span
+                            className={`text-xs font-semibold ${
+                              role.spots_remaining <= 2 ? 'text-amber-600' : 'text-green-600'
+                            }`}
+                          >
+                            {role.spots_remaining} spot{role.spots_remaining !== 1 ? 's' : ''} left
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Role Title */}
+                      <h1 className="text-lg font-bold text-gray-900 mb-1">{role.title}</h1>
+
+                      {/* Event Title */}
+                      <p className="text-sm text-gray-600">{roleInfo?.event_title}</p>
+
+                      {/* Role Description */}
+                      {role.description && (
+                        <p className="text-xs text-gray-500 mt-2 line-clamp-2">
+                          {role.description}
+                        </p>
+                      )}
+
+                      {/* Switch Button (for non-current roles) */}
+                      {!role.is_current && (
+                        <button
+                          type="button"
+                          onClick={() => handleSwitchRole(role.list_id)}
+                          className="mt-3 py-2 px-4 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                            />
+                          </svg>
+                          Switch to this role
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Dot Indicators */}
+              <div className="flex justify-center gap-1.5 pb-2">
+                {availableRolesForDate.map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setSelectedRoleIndex(index)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      index === selectedRoleIndex
+                        ? 'bg-indigo-600 w-4'
+                        : 'bg-gray-300 hover:bg-gray-400'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Swipe hint */}
+            <p className="text-center text-xs text-gray-400 mt-2">
+              ← Swipe or tap arrows to see other roles →
+            </p>
           </div>
-          <h1 className="text-xl font-bold text-gray-900">{roleInfo?.title}</h1>
-          <p className="text-sm text-gray-600 mt-1">{roleInfo?.event_title}</p>
-          {roleInfo?.description && (
-            <p className="text-xs text-gray-500 mt-2">{roleInfo.description}</p>
-          )}
-        </div>
+        ) : (
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-full mb-3">
+              <svg
+                className="w-6 h-6 text-indigo-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">{roleInfo?.title}</h1>
+            <p className="text-sm text-gray-600 mt-1">{roleInfo?.event_title}</p>
+            {roleInfo?.description && (
+              <p className="text-xs text-gray-500 mt-2">{roleInfo.description}</p>
+            )}
+          </div>
+        )}
 
         {/* Status badges */}
         {roleInfo?.is_locked && (
@@ -822,177 +987,6 @@ export default function QuickSignupPage() {
                 {roleInfo.available_dates.some((d) => !d.is_full && !d.is_locked)
                   ? 'Please select an available date above'
                   : 'All dates are currently full - check back later for openings'}
-              </div>
-            )}
-
-            {/* Role Carousel - shows when date is selected and there are other roles */}
-            {selectedDate && availableRolesForDate.length > 1 && (
-              <div className="relative">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Choose Your Role
-                  </label>
-                  <span className="text-xs text-indigo-500 font-medium">
-                    {selectedRoleIndex + 1} of {availableRolesForDate.length} roles
-                  </span>
-                </div>
-
-                {/* Carousel Container */}
-                <div
-                  className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 p-1"
-                  onTouchStart={handleTouchStart}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                >
-                  {/* Navigation Arrows */}
-                  <button
-                    type="button"
-                    onClick={handlePrevRole}
-                    className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:bg-white hover:scale-110 transition-all"
-                  >
-                    <svg
-                      className="w-4 h-4 text-indigo-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 19l-7-7 7-7"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleNextRole}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:bg-white hover:scale-110 transition-all"
-                  >
-                    <svg
-                      className="w-4 h-4 text-indigo-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </button>
-
-                  {/* Cards Container */}
-                  <div
-                    ref={carouselRef}
-                    className="flex transition-transform duration-300 ease-out"
-                    style={{ transform: `translateX(-${selectedRoleIndex * 100}%)` }}
-                  >
-                    {availableRolesForDate.map((role) => (
-                      <div key={role.list_id} className="w-full flex-shrink-0 px-8 py-4">
-                        <div
-                          className={`bg-white rounded-xl p-4 shadow-sm border-2 transition-all ${
-                            role.is_current
-                              ? 'border-indigo-500 ring-2 ring-indigo-200'
-                              : 'border-gray-200 hover:border-indigo-300'
-                          }`}
-                        >
-                          {/* Role Badge */}
-                          <div className="flex items-center justify-between mb-2">
-                            <span
-                              className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
-                                role.is_current
-                                  ? 'bg-indigo-100 text-indigo-700'
-                                  : 'bg-gray-100 text-gray-600'
-                              }`}
-                            >
-                              {role.is_current ? '✓ Current' : 'Alternative'}
-                            </span>
-                            {role.spots_remaining !== null && (
-                              <span
-                                className={`text-xs font-semibold ${
-                                  role.spots_remaining <= 2 ? 'text-amber-600' : 'text-green-600'
-                                }`}
-                              >
-                                {role.spots_remaining} spot{role.spots_remaining !== 1 ? 's' : ''}{' '}
-                                left
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Role Title */}
-                          <h3 className="text-lg font-bold text-gray-900 mb-1">{role.title}</h3>
-
-                          {/* Role Description */}
-                          {role.description && (
-                            <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-                              {role.description}
-                            </p>
-                          )}
-
-                          {/* Switch Button (for non-current roles) */}
-                          {!role.is_current && (
-                            <button
-                              type="button"
-                              onClick={() => handleSwitchRole(role.list_id)}
-                              className="w-full mt-2 py-2 px-4 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                                />
-                              </svg>
-                              Switch to this role
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Dot Indicators */}
-                  <div className="flex justify-center gap-1.5 pb-2">
-                    {availableRolesForDate.map((_, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() => setSelectedRoleIndex(index)}
-                        className={`w-2 h-2 rounded-full transition-all ${
-                          index === selectedRoleIndex
-                            ? 'bg-indigo-600 w-4'
-                            : 'bg-gray-300 hover:bg-gray-400'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Swipe hint */}
-                <p className="text-center text-xs text-gray-400 mt-2">
-                  ← Swipe or tap arrows to see other roles →
-                </p>
-              </div>
-            )}
-
-            {/* Slots indicator for selected date (only show if no carousel) */}
-            {selectedDate && roleInfo?.available_dates && availableRolesForDate.length <= 1 && (
-              <div className="text-center text-sm text-gray-500">
-                {(() => {
-                  const selected = roleInfo.available_dates.find((d) => d.id === selectedDate);
-                  if (!selected) return null;
-                  if (selected.spots_remaining === null) return 'Open slots available';
-                  return `${selected.spots_remaining} spot${selected.spots_remaining !== 1 ? 's' : ''} remaining`;
-                })()}
               </div>
             )}
 
