@@ -137,8 +137,8 @@ export async function GET(
           spots_remaining: row.max_slots ? Math.max(0, row.max_slots - row.signup_count) : null,
           is_full: isFull,
           is_locked: row.is_locked,
-          // NEW: other roles available on this date (only if this role is full/locked)
-          other_roles: isFull || row.is_locked ? (otherRolesByEvent[row.id] || []).slice(0, 3) : [],
+          // Always include other available roles for this date
+          other_roles: (otherRolesByEvent[row.id] || []).slice(0, 3),
         };
       });
     } else {
@@ -185,7 +185,7 @@ export async function GET(
           spots_remaining: list.max_slots ? Math.max(0, list.max_slots - signupCount) : null,
           is_full: isFull,
           is_locked: list.is_locked,
-          other_roles: isFull || list.is_locked ? otherRoles : [],
+          other_roles: otherRoles,
         },
       ];
     }

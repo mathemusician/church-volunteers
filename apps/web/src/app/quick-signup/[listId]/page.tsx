@@ -684,46 +684,55 @@ export default function QuickSignupPage() {
                             );
                           }
 
-                          // Available for this role
+                          // Available for this role - show card with other roles too
                           return (
-                            <button
-                              key={date.id}
-                              type="button"
-                              onClick={() => setSelectedDate(date.id)}
-                              className={`flex-shrink-0 w-20 p-3 rounded-2xl text-center transition-all relative border-2 ${
-                                isSelected
-                                  ? 'border-indigo-500 bg-indigo-600 text-white shadow-lg scale-105'
-                                  : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md'
-                              }`}
-                            >
-                              <div
-                                className={`text-xs font-bold uppercase tracking-wide ${
-                                  isSelected ? 'text-indigo-200' : 'text-indigo-500'
-                                }`}
-                              >
-                                {dayName}
-                              </div>
-                              <div
-                                className={`text-2xl font-bold leading-tight ${
-                                  isSelected ? 'text-white' : 'text-gray-900'
-                                }`}
-                              >
-                                {dayNum}
-                              </div>
-                              <div
-                                className={`text-xs font-semibold mt-1 ${
+                            <div key={date.id} className="flex-shrink-0 flex flex-col gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedDate(date.id)}
+                                className={`w-20 p-3 rounded-2xl text-center transition-all relative border-2 ${
                                   isSelected
-                                    ? 'text-indigo-200'
-                                    : date.spots_remaining !== null && date.spots_remaining <= 2
-                                      ? 'text-amber-600'
-                                      : 'text-green-600'
+                                    ? 'border-indigo-500 bg-indigo-600 text-white shadow-lg scale-105'
+                                    : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md'
                                 }`}
                               >
-                                {date.spots_remaining !== null
-                                  ? `${date.spots_remaining} left`
-                                  : 'Open'}
-                              </div>
-                            </button>
+                                <div
+                                  className={`text-xs font-bold uppercase tracking-wide ${
+                                    isSelected ? 'text-indigo-200' : 'text-indigo-500'
+                                  }`}
+                                >
+                                  {dayName}
+                                </div>
+                                <div
+                                  className={`text-2xl font-bold leading-tight ${
+                                    isSelected ? 'text-white' : 'text-gray-900'
+                                  }`}
+                                >
+                                  {dayNum}
+                                </div>
+                                <div
+                                  className={`text-xs font-semibold mt-1 ${
+                                    isSelected
+                                      ? 'text-indigo-200'
+                                      : date.spots_remaining !== null && date.spots_remaining <= 2
+                                        ? 'text-amber-600'
+                                        : 'text-green-600'
+                                  }`}
+                                >
+                                  {date.spots_remaining !== null
+                                    ? `${date.spots_remaining} left`
+                                    : 'Open'}
+                                </div>
+                              </button>
+                              {/* Show other available roles for this date */}
+                              {hasOtherRoles && (
+                                <div className="text-center">
+                                  <span className="text-xs text-gray-400">
+                                    +{date.other_roles!.length} other
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           );
                         })}
                       </div>
