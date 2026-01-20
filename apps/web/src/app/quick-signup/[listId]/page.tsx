@@ -208,7 +208,10 @@ export default function QuickSignupPage() {
       localStorage.setItem('volunteerName', name.trim());
       if (phone.trim()) localStorage.setItem('volunteerPhone', phone.trim());
 
-      const response = await fetch(`/api/quick-signup/${listId}/register`, {
+      // Use the selected role from carousel (if available) or fall back to current page's listId
+      const targetListId = selectedRole?.list_id || listId;
+
+      const response = await fetch(`/api/quick-signup/${targetListId}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -350,48 +353,21 @@ export default function QuickSignupPage() {
     [getAvailableRolesForSelectedDate]
   );
 
-  // Navigate to a role - if it's a different role, go to that page
-  const navigateToRole = useCallback(
-    (index: number) => {
-      const roles = availableRolesForDate;
-      if (index < 0 || index >= roles.length) return;
-      const role = roles[index];
-      if (!role.is_current) {
-        // Navigate to the other role's signup page
-        window.location.href = `/quick-signup/${role.list_id}`;
-      }
-    },
-    [availableRolesForDate]
-  );
+  // Get the currently selected role from the carousel
+  const selectedRole = availableRolesForDate[selectedRoleIndex] || availableRolesForDate[0];
 
-  // Handle role carousel navigation
-  const handlePrevRole = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const len = availableRolesForDate.length;
-      if (len <= 1) return;
-      const newIndex = selectedRoleIndex > 0 ? selectedRoleIndex - 1 : len - 1;
-      setSelectedRoleIndex(newIndex);
-      // Auto-navigate after a brief delay to show the flip
-      setTimeout(() => navigateToRole(newIndex), 300);
-    },
-    [availableRolesForDate.length, selectedRoleIndex, navigateToRole]
-  );
+  // Simple carousel navigation - just update the index
+  const goToPrevRole = () => {
+    const len = availableRolesForDate.length;
+    if (len <= 1) return;
+    setSelectedRoleIndex((i) => (i > 0 ? i - 1 : len - 1));
+  };
 
-  const handleNextRole = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const len = availableRolesForDate.length;
-      if (len <= 1) return;
-      const newIndex = selectedRoleIndex < len - 1 ? selectedRoleIndex + 1 : 0;
-      setSelectedRoleIndex(newIndex);
-      // Auto-navigate after a brief delay to show the flip
-      setTimeout(() => navigateToRole(newIndex), 300);
-    },
-    [availableRolesForDate.length, selectedRoleIndex, navigateToRole]
-  );
+  const goToNextRole = () => {
+    const len = availableRolesForDate.length;
+    if (len <= 1) return;
+    setSelectedRoleIndex((i) => (i < len - 1 ? i + 1 : 0));
+  };
 
   // Touch handlers for swipe gestures
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -405,20 +381,12 @@ export default function QuickSignupPage() {
   const handleTouchEnd = () => {
     const diff = touchStartX.current - touchEndX.current;
     const minSwipeDistance = 50;
-
     if (Math.abs(diff) > minSwipeDistance) {
-      const len = availableRolesForDate.length;
-      if (len <= 1) return;
-      let newIndex: number;
       if (diff > 0) {
-        // Swiped left - go to next
-        newIndex = selectedRoleIndex < len - 1 ? selectedRoleIndex + 1 : 0;
+        goToNextRole();
       } else {
-        // Swiped right - go to previous
-        newIndex = selectedRoleIndex > 0 ? selectedRoleIndex - 1 : len - 1;
+        goToPrevRole();
       }
-      setSelectedRoleIndex(newIndex);
-      setTimeout(() => navigateToRole(newIndex), 300);
     }
   };
 
@@ -653,7 +621,7 @@ export default function QuickSignupPage() {
               {/* Navigation Arrows */}
               <button
                 type="button"
-                onClick={handlePrevRole}
+                onClick={goToPrevRole}
                 className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:bg-white hover:scale-110 transition-all active:scale-95"
               >
                 <svg
@@ -672,7 +640,7 @@ export default function QuickSignupPage() {
               </button>
               <button
                 type="button"
-                onClick={handleNextRole}
+                onClick={goToNextRole}
                 className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:bg-white hover:scale-110 transition-all active:scale-95"
               >
                 <svg
