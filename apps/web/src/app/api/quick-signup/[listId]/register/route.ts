@@ -66,14 +66,16 @@ export async function POST(
       targetListId = targetResult.rows[0].id;
     }
 
-    // Lock the target list row and get current state in one query
+    // Lock the target list row first
+    await client.query(`SELECT id FROM volunteer_lists WHERE id = $1 FOR UPDATE`, [targetListId]);
+
+    // Then get current state with signup count
     const lockResult = await client.query(
       `SELECT vl.id, vl.is_locked, vl.max_slots, COUNT(vs.id)::int as signup_count
        FROM volunteer_lists vl
        LEFT JOIN volunteer_signups vs ON vl.id = vs.list_id
        WHERE vl.id = $1
-       GROUP BY vl.id
-       FOR UPDATE OF vl`,
+       GROUP BY vl.id`,
       [targetListId]
     );
 
