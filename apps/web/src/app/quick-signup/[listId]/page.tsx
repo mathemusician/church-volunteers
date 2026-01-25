@@ -779,6 +779,30 @@ export default function QuickSignupPage() {
               />
             </div>
 
+            {/* Phone */}
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                Phone <span className="text-gray-400">(for reminders)</span>
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="555-123-4567"
+              />
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={submitting || !name.trim() || !selectedDate}
+              className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-lg"
+            >
+              {submitting ? 'Signing Up...' : 'Sign Me Up!'}
+            </button>
+
             {/* Disney-style Date Selection - grouped by month with horizontal scroll */}
             {Object.keys(datesByMonth).length > 0 && (
               <div>
@@ -925,39 +949,6 @@ export default function QuickSignupPage() {
                 </div>
               </div>
             )}
-
-            {/* Phone */}
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone <span className="text-gray-400">(for reminders)</span>
-              </label>
-              <input
-                type="tel"
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="555-123-4567"
-              />
-            </div>
-
-            {/* Warning if no date selected */}
-            {roleInfo?.available_dates && !selectedDate && (
-              <div className="text-center text-sm text-amber-600 bg-amber-50 p-2 rounded-lg">
-                {roleInfo.available_dates.some((d) => !d.is_full && !d.is_locked)
-                  ? 'Please select an available date above'
-                  : 'All dates are currently full - check back later for openings'}
-              </div>
-            )}
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={submitting || !name.trim() || !selectedDate}
-              className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-lg"
-            >
-              {submitting ? 'Signing Up...' : 'Sign Me Up!'}
-            </button>
           </form>
         )}
       </div>
