@@ -140,6 +140,9 @@ export default function QuickSignupPage() {
                 const nextAvailable = data.available_dates.find(
                   (d: any) => !d.is_full && !d.is_locked
                 );
+                if (nextAvailable) {
+                  setSelectedRoleIndex(0); // Reset role index when date changes
+                }
                 return nextAvailable?.id ?? null;
               }
               return currentSelected;
@@ -238,6 +241,7 @@ export default function QuickSignupPage() {
             );
             if (nextAvailable) {
               setSelectedDate(nextAvailable.id);
+              setSelectedRoleIndex(0); // Reset role index when date changes
             } else {
               setSelectedDate(null);
             }
@@ -264,6 +268,7 @@ export default function QuickSignupPage() {
     setError(null);
     setSignedUpRoles([]);
     setSignedUpDates([]);
+    setSelectedRoleIndex(0); // Reset role carousel
     fetchRoleInfo();
   };
 
@@ -774,21 +779,6 @@ export default function QuickSignupPage() {
               />
             </div>
 
-            {/* Phone */}
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone <span className="text-gray-400">(for reminders)</span>
-              </label>
-              <input
-                type="tel"
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="555-123-4567"
-              />
-            </div>
-
             {/* Disney-style Date Selection - grouped by month with horizontal scroll */}
             {Object.keys(datesByMonth).length > 0 && (
               <div>
@@ -803,7 +793,7 @@ export default function QuickSignupPage() {
                   </span>
                 </div>
 
-                <div className="space-y-4 max-h-80 overflow-y-auto">
+                <div className="space-y-4">
                   {Object.entries(datesByMonth).map(([month, dates]) => (
                     <div key={month}>
                       {/* Month header - like Disney's Heroes/Villains sections */}
@@ -880,7 +870,10 @@ export default function QuickSignupPage() {
                             <div key={date.id} className="flex-shrink-0 flex flex-col gap-1">
                               <button
                                 type="button"
-                                onClick={() => setSelectedDate(date.id)}
+                                onClick={() => {
+                                  setSelectedDate(date.id);
+                                  setSelectedRoleIndex(0); // Reset to first role when changing date
+                                }}
                                 className={`w-20 p-3 rounded-2xl text-center transition-all relative border-2 ${
                                   isSelected
                                     ? 'border-indigo-500 bg-indigo-600 text-white shadow-lg scale-105'
@@ -932,6 +925,21 @@ export default function QuickSignupPage() {
                 </div>
               </div>
             )}
+
+            {/* Phone */}
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                Phone <span className="text-gray-400">(for reminders)</span>
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="555-123-4567"
+              />
+            </div>
 
             {/* Warning if no date selected */}
             {roleInfo?.available_dates && !selectedDate && (
