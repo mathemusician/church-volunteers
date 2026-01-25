@@ -126,6 +126,11 @@ export async function POST(
 
     const eventInfo = eventResult.rows[0];
 
+    if (!eventInfo) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    }
+
     // Commit the transaction first to release locks
     await client.query('COMMIT');
 
@@ -160,28 +165,38 @@ export async function POST(
 
     // Get other available dates for the same role (for cross-sell on confirmation)
     // Find sibling events from the same template with the same role title
-    const otherDatesResult = await client.query(
-      `SELECT 
-        ve.id as event_id,
-        ve.event_date,
-        vl.id as list_id,
-        vl.max_slots,
-        COUNT(vs.id)::int as signup_count
-       FROM volunteer_events ve
-       JOIN volunteer_lists vl ON vl.event_id = ve.id AND vl.title = $1
-       LEFT JOIN volunteer_signups vs ON vs.list_id = vl.id
-       WHERE ve.template_id = (SELECT template_id FROM volunteer_events WHERE id = $2)
-         AND ve.id != $2
-         AND ve.is_template = false
-         AND ve.is_active = true
-         AND ve.event_date >= CURRENT_DATE
-         AND vl.is_locked = false
-       GROUP BY ve.id, vl.id
-       HAVING vl.max_slots IS NULL OR COUNT(vs.id) < vl.max_slots
-       ORDER BY ve.event_date ASC
-       LIMIT 3`,
-      [eventInfo.role_title, eventInfo.event_id]
+    // Only query if we have a template_id (standalone events won't have siblings)
+    let otherDatesResult = { rows: [] };
+    const templateCheck = await client.query(
+      `SELECT template_id FROM volunteer_events WHERE id = $1`,
+      [eventInfo.event_id]
     );
+    const templateId = templateCheck.rows[0]?.template_id;
+
+    if (templateId) {
+      otherDatesResult = await client.query(
+        `SELECT 
+          ve.id as event_id,
+          ve.event_date,
+          vl.id as list_id,
+          vl.max_slots,
+          COUNT(vs.id)::int as signup_count
+         FROM volunteer_events ve
+         JOIN volunteer_lists vl ON vl.event_id = ve.id AND vl.title = $1
+         LEFT JOIN volunteer_signups vs ON vs.list_id = vl.id
+         WHERE ve.template_id = $3
+           AND ve.id != $2
+           AND ve.is_template = false
+           AND ve.is_active = true
+           AND ve.event_date >= CURRENT_DATE
+           AND vl.is_locked = false
+         GROUP BY ve.id, vl.id
+         HAVING vl.max_slots IS NULL OR COUNT(vs.id) < vl.max_slots
+         ORDER BY ve.event_date ASC
+         LIMIT 3`,
+        [eventInfo.role_title, eventInfo.event_id, templateId]
+      );
+    }
 
     const otherDates = otherDatesResult.rows.map((row: any) => {
       let eventDateStr = null;
@@ -239,8 +254,11 @@ export async function POST(
       );
     }
 
-    console.error('Error registering volunteer:', error);
-    return NextResponse.json({ error: 'Failed to sign up' }, { status: 500 });
+    console.error('Error registering volunteer:', error.message, error.stack);
+    return NextResponse.json(
+      { error: 'Failed to sign up', details: error.message },
+      { status: 500 }
+    );
   } finally {
     // Always release the client back to the pool (only if acquired)
     if (client) {
