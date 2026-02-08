@@ -335,7 +335,12 @@ export default function QuickSignupPage() {
     const selectedDateInfo = roleInfo.available_dates.find((d) => d.id === selectedDate);
     if (!selectedDateInfo) return [];
 
-    // Current role as first option
+    // Current role (only include if it has spots available)
+    const currentRoleFull =
+      selectedDateInfo.is_full ||
+      selectedDateInfo.is_locked ||
+      (selectedDateInfo.spots_remaining !== null && selectedDateInfo.spots_remaining <= 0);
+
     const currentRole = {
       list_id: selectedDateInfo.list_id,
       title: roleInfo.title,
@@ -350,7 +355,7 @@ export default function QuickSignupPage() {
       is_current: false,
     }));
 
-    return [currentRole, ...otherRoles];
+    return currentRoleFull ? otherRoles : [currentRole, ...otherRoles];
   }, [selectedDate, roleInfo]);
 
   const availableRolesForDate = useMemo(
@@ -797,7 +802,14 @@ export default function QuickSignupPage() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={submitting || !name.trim() || !selectedDate}
+              disabled={
+                submitting ||
+                !name.trim() ||
+                !selectedDate ||
+                (selectedRole?.spots_remaining !== null &&
+                  selectedRole?.spots_remaining !== undefined &&
+                  selectedRole.spots_remaining <= 0)
+              }
               className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-lg"
             >
               {submitting ? 'Signing Up...' : 'Sign Me Up!'}
@@ -842,32 +854,33 @@ export default function QuickSignupPage() {
                           // If this role is full but other roles available, show as "other roles" card
                           if (isThisRoleFull && hasOtherRoles) {
                             return (
-                              <div
+                              <button
                                 key={date.id}
-                                className="flex-shrink-0 w-24 p-2 rounded-2xl text-center border-2 border-amber-200 bg-amber-50"
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDate(date.id);
+                                  // Full current role is filtered out, so first other role is at index 0
+                                  setSelectedRoleIndex(0);
+                                }}
+                                className={`flex-shrink-0 w-24 p-2 rounded-2xl text-center border-2 transition-all ${
+                                  isSelected
+                                    ? 'border-amber-500 bg-amber-100 shadow-lg scale-105'
+                                    : 'border-amber-200 bg-amber-50 hover:border-amber-400 hover:shadow-md'
+                                }`}
                               >
                                 <div className="text-xs font-bold text-amber-600 uppercase">
                                   {dayName}
                                 </div>
-                                <div className="text-xl font-bold text-gray-700">{dayNum}</div>
+                                <div
+                                  className={`text-xl font-bold ${isSelected ? 'text-amber-700' : 'text-gray-700'}`}
+                                >
+                                  {dayNum}
+                                </div>
                                 <div className="text-xs text-amber-600 font-medium">
-                                  {roleInfo?.title} full
+                                  {date.other_roles!.length} other role
+                                  {date.other_roles!.length !== 1 ? 's' : ''}
                                 </div>
-                                <div className="mt-1 space-y-1">
-                                  {date.other_roles!.slice(0, 2).map((role) => (
-                                    <button
-                                      key={role.list_id}
-                                      type="button"
-                                      onClick={() => {
-                                        window.location.href = `/quick-signup/${role.list_id}`;
-                                      }}
-                                      className="w-full text-xs px-1 py-0.5 bg-amber-500 text-white rounded hover:bg-amber-600 truncate"
-                                    >
-                                      {role.title}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
+                              </button>
                             );
                           }
 
