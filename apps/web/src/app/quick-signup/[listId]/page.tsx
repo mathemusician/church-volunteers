@@ -134,8 +134,14 @@ export default function QuickSignupPage() {
               const selectedDateInfo = data.available_dates.find(
                 (d: any) => d.id === currentSelected
               );
-              // If selected date is now full or locked, clear selection
-              if (selectedDateInfo && (selectedDateInfo.is_full || selectedDateInfo.is_locked)) {
+              // Only auto-move if the date has NO available roles at all
+              // (current role full/locked AND no other roles available)
+              const hasOtherRoles = selectedDateInfo?.other_roles?.length > 0;
+              if (
+                selectedDateInfo &&
+                (selectedDateInfo.is_full || selectedDateInfo.is_locked) &&
+                !hasOtherRoles
+              ) {
                 // Find next available
                 const nextAvailable = data.available_dates.find(
                   (d: any) => !d.is_full && !d.is_locked
@@ -864,19 +870,23 @@ export default function QuickSignupPage() {
                                 }}
                                 className={`flex-shrink-0 w-24 p-2 rounded-2xl text-center border-2 transition-all ${
                                   isSelected
-                                    ? 'border-amber-500 bg-amber-100 shadow-lg scale-105'
+                                    ? 'border-amber-500 bg-amber-500 shadow-lg'
                                     : 'border-amber-200 bg-amber-50 hover:border-amber-400 hover:shadow-md'
                                 }`}
                               >
-                                <div className="text-xs font-bold text-amber-600 uppercase">
+                                <div
+                                  className={`text-xs font-bold uppercase ${isSelected ? 'text-amber-100' : 'text-amber-600'}`}
+                                >
                                   {dayName}
                                 </div>
                                 <div
-                                  className={`text-xl font-bold ${isSelected ? 'text-amber-700' : 'text-gray-700'}`}
+                                  className={`text-xl font-bold ${isSelected ? 'text-white' : 'text-gray-700'}`}
                                 >
                                   {dayNum}
                                 </div>
-                                <div className="text-xs text-amber-600 font-medium">
+                                <div
+                                  className={`text-xs font-medium ${isSelected ? 'text-amber-100' : 'text-amber-600'}`}
+                                >
                                   {date.other_roles!.length} other role
                                   {date.other_roles!.length !== 1 ? 's' : ''}
                                 </div>
@@ -913,7 +923,7 @@ export default function QuickSignupPage() {
                                 }}
                                 className={`w-20 p-3 rounded-2xl text-center transition-all relative border-2 ${
                                   isSelected
-                                    ? 'border-indigo-500 bg-indigo-600 text-white shadow-lg scale-105'
+                                    ? 'border-indigo-500 bg-indigo-600 text-white shadow-lg'
                                     : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md'
                                 }`}
                               >
